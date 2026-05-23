@@ -1,0 +1,11 @@
+en:
+  theme_metadata:
+    description: "App-like desktop primary navigation strip for Jesus Enough. Surfaces the key destinations (Home, Discussions, Matches, Messages, Talk to Logos) and demotes the Discourse sidebar to forum routes only. Mobile is handled by F-NAV."
+    settings:
+      je_nav_destinations: "The primary navigation destinations shown in the desktop strip."
+      je_nav_show_brand: "Show the brand lockup (icon + name) at the left of the strip."
+      je_nav_brand_label: "Text shown in the brand lockup."
+      je_nav_brand_icon: "FontAwesome icon name for the brand lockup."
+      je_nav_show_avatar: "Show an account link at the right of the strip (off by default — Discourse's native avatar menu already covers this)."
+      je_nav_hide_sidebar_in_plaza: "Hide the Discourse sidebar everywhere except forum routes (Plaza mode)."
+      je_nav_forum_route_classes: "Body classes that mark a forum route, where the sidebar stays visible."
