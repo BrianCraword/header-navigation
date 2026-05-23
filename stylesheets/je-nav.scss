@@ -1,0 +1,202 @@
+// JE Desktop Nav — keyed to the Community Plaza palette.
+// Falls back gracefully if the Plaza theme variables aren't present.
+
+.je-nav {
+  // Local aliases onto the Plaza palette, with sane fallbacks.
+  --je-accent: var(--plaza-accent, var(--tertiary));
+  --je-accent-light: var(--plaza-accent-light, var(--highlight));
+  --je-pop: var(--plaza-pop, var(--love));
+  --je-surface: var(--secondary);
+  --je-border: var(--primary-200, rgba(0, 0, 0, 0.1));
+  --je-text: var(--primary);
+  --je-text-soft: var(--primary-medium, var(--primary));
+  --je-radius: var(--d-border-radius, 8px);
+  --je-pill: var(--d-button-border-radius, 999px);
+
+  display: none; // shown on desktop only, below
+  width: 100%;
+}
+
+.desktop-view .je-nav {
+  display: block;
+}
+
+.je-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: var(--d-max-width, 1200px);
+  margin: 0 auto;
+  padding: 8px 12px;
+  background: var(--je-surface);
+  border: 1px solid var(--je-border);
+  border-radius: var(--je-radius);
+}
+
+.je-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: var(--font-up-1);
+  color: var(--je-text);
+  text-decoration: none;
+  padding-right: 14px;
+  margin-right: 6px;
+  border-right: 1px solid var(--je-border);
+
+  .d-icon {
+    color: var(--je-accent);
+    font-size: 1.1em;
+  }
+
+  &:hover {
+    color: var(--je-text);
+  }
+}
+
+.je-nav__items {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.je-nav__group {
+  position: relative;
+}
+
+.je-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  border-radius: var(--je-pill);
+  padding: 7px 14px;
+  font-size: var(--font-0);
+  font-weight: normal;
+  line-height: 1;
+  color: var(--je-text-soft);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  .d-icon {
+    font-size: 1em;
+    color: inherit;
+  }
+
+  .je-nav__caret {
+    font-size: 0.8em;
+    margin-left: -2px;
+    opacity: 0.7;
+  }
+
+  &:hover {
+    background: var(--je-accent-light);
+    color: var(--je-text);
+  }
+
+  &.open {
+    background: var(--je-accent-light);
+    color: var(--je-text);
+  }
+
+  // Active = you are here. The signature app-like state.
+  &.active {
+    background: var(--je-accent-light);
+    color: var(--je-accent);
+    font-weight: 500;
+
+    .d-icon {
+      color: var(--je-accent);
+    }
+  }
+}
+
+.je-nav__spacer {
+  flex: 1 1 auto;
+}
+
+.je-nav__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--je-accent-light);
+  color: var(--je-accent);
+  border: none;
+  border-radius: var(--je-pill);
+  padding: 7px 14px;
+  font-size: var(--font-down-1);
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+
+.je-nav__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  min-width: 240px;
+  background: var(--secondary);
+  border: 1px solid var(--je-border);
+  border-radius: var(--je-radius);
+  padding: 6px;
+  box-shadow: var(--shadow-dropdown, 0 2px 8px rgba(0, 0, 0, 0.12));
+}
+
+.je-nav__dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--je-radius);
+  text-decoration: none;
+  color: var(--je-text);
+
+  .d-icon {
+    color: var(--je-text-soft);
+    font-size: 1em;
+  }
+
+  &:hover {
+    background: var(--je-accent-light);
+  }
+}
+
+.je-nav__dropdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.je-nav__dropdown-label {
+  font-size: var(--font-0);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.je-nav__dropdown-subtext {
+  font-size: var(--font-down-1);
+  color: var(--je-text-soft);
+  line-height: 1.3;
+}
+
+// --- Plaza mode: demote the Discourse sidebar -------------------------------
+// One switch. `je-plaza-mode` is added everywhere except forum routes by the
+// initializer. To DEMOTE rather than fully hide later, change `display: none`
+// here to a narrower width / reduced opacity — no JS change needed.
+.desktop-view.je-plaza-mode {
+  .sidebar-wrapper {
+    display: none;
+  }
+
+  // Reclaim the space the sidebar left behind.
+  #main-outlet-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
