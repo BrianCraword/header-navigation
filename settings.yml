@@ -1,5 +1,29 @@
+# ── Header Mega Nav — per-site settings ─────────────────────────────────
+#
+# ONE REPO, MANY SITES. Everything an admin edits here is stored in THIS
+# site's database (theme_settings), so the same component installed on two
+# sites carries two fully independent menus. Component updates ship new
+# DEFAULTS and SCHEMA only — a site that has edited a setting keeps its
+# value through every update. The defaults below are EXAMPLES (revision-1
+# links) to make the schema visible; replace them per site in
+# Admin → Customize → Themes → this component → Settings. No rebuild, no
+# file edits — changes apply on the next page refresh.
+#
+# SCHEMA DISCIPLINE (for future maintainers): evolve this schema
+# ADDITIVELY only. Never rename a setting key or remove a property —
+# stored per-site values are keyed to them.
+
 je_nav_destinations:
-  description: "The primary navigation destinations shown in the desktop strip. Each row is one destination. Use type 'link' for a direct destination, or 'dropdown' to open a panel of child links (e.g. Discussions). The /my/ alias resolves to the current user automatically. The optional 'color' field sets the icon color (any CSS color, e.g. #e24b4a); leave blank to use the neutral default."
+  description: >-
+    The primary navigation. Each row is one destination: type 'link' goes
+    straight to href; type 'dropdown' opens a panel of children. MEGA MENU:
+    give children a 'section' label and the panel renders one titled column
+    per section (children without a section render first, untitled).
+    Visibility: show_when = all / members (logged-in) / staff, per
+    destination AND per child. 'badge' renders a small accent chip (NEW,
+    LIVE). The /my/ href alias resolves to the current user. 'color' tints
+    the icon when not active (any CSS color). Icons must be in the
+    svg_icons setting below (or already in core's subset).
   type: objects
   default:
     [
@@ -41,6 +65,15 @@ je_nav_destinations:
           url: true
       color:
         type: string
+      badge:
+        type: string
+      show_when:
+        type: enum
+        default: all
+        choices:
+          - all
+          - members
+          - staff
       children:
         type: objects
         schema:
@@ -59,6 +92,22 @@ je_nav_destinations:
                 url: true
             subtext:
               type: string
+            section:
+              type: string
+            badge:
+              type: string
+            show_when:
+              type: enum
+              default: all
+              choices:
+                - all
+                - members
+                - staff
+
+je_nav_show_anon:
+  description: "Show the navigation strip to anonymous (logged-out) visitors. Items marked show_when 'members' or 'staff' stay hidden for them. OFF preserves the original members-only behavior."
+  type: bool
+  default: false
 
 je_nav_show_brand:
   description: "Show the brand lockup (icon + name) at the left of the strip. Disable if your theme already renders a logo above the strip."
@@ -66,7 +115,7 @@ je_nav_show_brand:
   default: true
 
 je_nav_brand_label:
-  description: "Text shown in the brand lockup."
+  description: "Text shown in the brand lockup. Set per site (e.g. 'Jesus Enough', 'Victorious Christians')."
   type: string
   default: "Jesus Enough"
 
@@ -97,7 +146,7 @@ je_nav_forum_route_classes:
   default: "navigation-categories|navigation-topics|navigation-category|categories-list"
 
 svg_icons:
-  default: "cross"
+  default: "cross|scroll|trophy"
   type: list
   list_type: "compact"
-  description: "Extra FontAwesome icons referenced by settings (brand icon, custom destinations). Add any icon you reference in je_nav_destinations here."
+  description: "Extra FontAwesome icons referenced by settings (brand icon, custom destinations). Add any icon you reference in je_nav_destinations here — per site, no rebuild."
