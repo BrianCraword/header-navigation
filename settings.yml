@@ -1,152 +1,72 @@
-# ── Header Mega Nav — per-site settings ─────────────────────────────────
-#
-# ONE REPO, MANY SITES. Everything an admin edits here is stored in THIS
-# site's database (theme_settings), so the same component installed on two
-# sites carries two fully independent menus. Component updates ship new
-# DEFAULTS and SCHEMA only — a site that has edited a setting keeps its
-# value through every update. The defaults below are EXAMPLES (revision-1
-# links) to make the schema visible; replace them per site in
-# Admin → Customize → Themes → this component → Settings. No rebuild, no
-# file edits — changes apply on the next page refresh.
-#
-# SCHEMA DISCIPLINE (for future maintainers): evolve this schema
-# ADDITIVELY only. Never rename a setting key or remove a property —
-# stored per-site values are keyed to them.
+# Header Mega Nav
 
-je_nav_destinations:
-  description: >-
-    The primary navigation. Each row is one destination: type 'link' goes
-    straight to href; type 'dropdown' opens a panel of children. MEGA MENU:
-    give children a 'section' label and the panel renders one titled column
-    per section (children without a section render first, untitled).
-    Visibility: show_when = all / members (logged-in) / staff, per
-    destination AND per child. 'badge' renders a small accent chip (NEW,
-    LIVE). The /my/ href alias resolves to the current user. 'color' tints
-    the icon when not active (any CSS color). Icons must be in the
-    svg_icons setting below (or already in core's subset).
-  type: objects
-  default:
-    [
-      {
-        "label": "Discussions",
-        "icon": "comments",
-        "type": "dropdown",
-        "color": "#378add",
-        "children":
-          [
-            { "label": "General", "icon": "book-open", "href": "/c/general/4", "subtext": "Most active" },
-            { "label": "Site Feedback", "icon": "message", "href": "/c/site-feedback/2", "subtext": "Suggestions & bugs" },
-            { "label": "All categories", "icon": "table-cells-large", "href": "/categories", "subtext": "Enter the full forum" },
-          ],
-      },
-      { "label": "Matches", "icon": "heart", "href": "/matchmaking/matches", "type": "link", "color": "#e24b4a" },
-      { "label": "Messages", "icon": "envelope", "href": "/my/messages", "type": "link", "color": "#1d9e75" },
-      { "label": "Talk to Logos", "icon": "wand-magic-sparkles", "href": "/discourse-ai/ai-bot/conversations", "type": "link", "color": "#b07cdb" },
-    ]
-  schema:
-    name: "destination"
-    identifier: label
-    properties:
-      label:
-        type: string
-        required: true
-      icon:
-        type: string
-        required: true
-      type:
-        type: enum
-        default: link
-        choices:
-          - link
-          - dropdown
-      href:
-        type: string
-        validations:
-          url: true
-      color:
-        type: string
-      badge:
-        type: string
-      show_when:
-        type: enum
-        default: all
-        choices:
-          - all
-          - members
-          - staff
-      children:
-        type: objects
-        schema:
-          name: "child"
-          identifier: label
-          properties:
-            label:
-              type: string
-              required: true
-            icon:
-              type: string
-            href:
-              type: string
-              required: true
-              validations:
-                url: true
-            subtext:
-              type: string
-            section:
-              type: string
-            badge:
-              type: string
-            show_when:
-              type: enum
-              default: all
-              choices:
-                - all
-                - members
-                - staff
+A per-site, admin-managed primary navigation strip for Discourse.
+One repo serves any number of sites: **the entire menu lives in theme
+settings**, edited at
+**Admin → Customize → Themes → Header Mega Nav → Settings** — no file
+edits, no rebuild; changes apply on the next page refresh.
 
-je_nav_show_anon:
-  description: "Show the navigation strip to anonymous (logged-out) visitors. Items marked show_when 'members' or 'staff' stay hidden for them. OFF preserves the original members-only behavior."
-  type: bool
-  default: false
+## The per-site model (read this once)
 
-je_nav_show_brand:
-  description: "Show the brand lockup (icon + name) at the left of the strip. Disable if your theme already renders a logo above the strip."
-  type: bool
-  default: true
+Discourse stores edited theme settings in **each site's database**. The
+same component installed on two sites carries two fully independent
+menus. Component updates ship new *defaults and schema* only — **a site
+that has edited a setting keeps its value through every update.** The
+defaults in `settings.yml` are examples; the first thing to do on a new
+site is replace them in the admin panel.
 
-je_nav_brand_label:
-  description: "Text shown in the brand lockup. Set per site (e.g. 'Jesus Enough', 'Victorious Christians')."
-  type: string
-  default: "Jesus Enough"
+> Maintainer rule: schema changes must be **additive**. Never rename a
+> setting key or remove a schema property — per-site stored values are
+> keyed to them.
 
-je_nav_brand_icon:
-  description: "FontAwesome icon name for the brand lockup."
-  type: string
-  default: "cross"
+## Managing the menu
 
-je_nav_show_avatar:
-  description: "Show a link to the user's account at the right of the strip. Leave OFF if you rely on Discourse's native header avatar menu (recommended, to avoid duplicating the account menu)."
-  type: bool
-  default: false
+Everything is the `je_nav_destinations` objects setting. Each row:
 
-je_nav_hide_sidebar_in_plaza:
-  description: "Master switch. When ON, the Discourse sidebar is hidden on Plaza routes (everywhere except forum routes) and a per-user pin toggle appears on the strip. When OFF, the sidebar always shows and no toggle is offered."
-  type: bool
-  default: true
+| Field | Meaning |
+|---|---|
+| `label`, `icon` | Text + FontAwesome icon (add custom icons to the `svg_icons` setting) |
+| `type` | `link` (goes to `href`) or `dropdown` (opens a panel of `children`) |
+| `href` | Destination. `/my/...` resolves to the current user |
+| `color` | Icon tint when not active (any CSS color) |
+| `badge` | Optional accent chip — `NEW`, `LIVE` |
+| `show_when` | `all` · `members` (logged-in) · `staff` |
+| `children` | Dropdown rows: `label`, `href`, `icon`, `subtext`, `badge`, `show_when`, `section` |
 
-je_nav_sidebar_default_hidden:
-  description: "When the master switch is ON, this is the default state for users who haven't set their own preference: hidden (clean app feel) or shown. Each user can override and their choice is remembered in their browser."
-  type: bool
-  default: true
+**Mega menu:** give children a `section` label and the dropdown renders
+one titled column per section. No sections → classic single column.
 
-je_nav_forum_route_classes:
-  description: "Body classes that mark a 'forum mode' route, where the sidebar should remain visible. Add more (e.g. tag-show pages) as your forum grows."
-  type: list
-  list_type: compact
-  default: "navigation-categories|navigation-topics|navigation-category|categories-list"
+**Anonymous visitors:** the strip is members-only by default; switch
+`je_nav_show_anon` ON to show it to logged-out visitors (`members`/
+`staff` items stay hidden for them).
 
-svg_icons:
-  default: "cross|scroll|trophy"
-  type: list
-  list_type: "compact"
-  description: "Extra FontAwesome icons referenced by settings (brand icon, custom destinations). Add any icon you reference in je_nav_destinations here — per site, no rebuild."
+Brand (label + icon), avatar link, and the Plaza sidebar-hiding behavior
+are their own settings — see descriptions in the admin panel.
+
+## Example: a Word-centered site menu
+
+```json
+[
+  { "label": "Discussions", "icon": "comments", "type": "dropdown", "color": "#378add",
+    "children": [
+      { "label": "General", "icon": "book-open", "href": "/c/general/4", "section": "Forum" },
+      { "label": "All categories", "icon": "table-cells-large", "href": "/categories", "section": "Forum" },
+      { "label": "Scripture Campaign", "icon": "scroll", "href": "/scripture-campaign", "section": "The Word", "subtext": "Walk a season", "badge": "NEW" },
+      { "label": "Bible Trivia", "icon": "trophy", "href": "/trivia", "section": "The Word", "subtext": "Contests & the bank" }
+    ] },
+  { "label": "Scripture Campaign", "icon": "scroll", "href": "/scripture-campaign", "type": "link", "color": "#d8a657", "badge": "NEW" },
+  { "label": "Bible Trivia", "icon": "trophy", "href": "/trivia", "type": "link", "color": "#378add" },
+  { "label": "Messages", "icon": "envelope", "href": "/my/messages", "type": "link", "color": "#1d9e75" },
+  { "label": "Talk to Logos", "icon": "wand-magic-sparkles", "href": "/discourse-ai/ai-bot/conversations", "type": "link", "color": "#b07cdb" }
+]
+```
+
+(Use either the flat links or the sectioned dropdown — the JSON above
+shows both shapes.)
+
+## Version notes
+
+**2.0.0** — mega-menu sections, per-item/child `show_when` visibility,
+badge chips, optional anonymous strip (`je_nav_show_anon`), neutral
+shared-repo identity, this README. All schema changes additive; v1
+per-site values render unchanged.

@@ -1,30 +1,349 @@
-{
-  "name": "Header Mega Nav",
-  "component": true,
-  "license_url": null,
-  "about_url": null,
-  "authors": "Brian Crawford",
-  "theme_version": "2.0.0",
-  "minimum_discourse_version": null,
-  "maximum_discourse_version": null,
-  "assets": {},
-  "color_schemes": {},
-  "modifiers": {
-    "svg_icons": [
-      "comments",
-      "heart",
-      "envelope",
-      "wand-magic-sparkles",
-      "angle-down",
-      "book-open",
-      "message",
-      "table-cells-large",
-      "table-columns",
-      "diagram-next",
-      "scroll",
-      "trophy",
-      "cross"
-    ]
-  },
-  "learn_more": "https://meta.discourse.org/t/beginners-guide-to-using-discourse-themes/91966"
+// JE Desktop Nav — keyed to the Community Plaza palette.
+// Falls back gracefully if the Plaza theme variables aren't present.
+
+.je-nav {
+  --je-accent: var(--plaza-accent, var(--tertiary));
+  --je-accent-light: var(--plaza-accent-light, var(--highlight));
+  --je-pop: var(--plaza-pop, var(--love));
+  --je-surface: var(--secondary);
+  --je-border: var(--primary-200, rgba(0, 0, 0, 0.1));
+  --je-text: var(--primary);
+  --je-text-soft: var(--primary-medium, var(--primary));
+  --je-radius: var(--d-border-radius, 8px);
+  --je-pill: var(--d-button-border-radius, 999px);
+  // Sticky offset = height of the Discourse header.
+  --je-header-offset: var(--header-offset, 53px);
+
+  display: none; // desktop only, enabled below
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.desktop-view .je-nav {
+  display: block;
+  // Sticky band: tucks just below the native (already sticky) Discourse header
+  // and stays visible on scroll.
+  position: sticky;
+  top: var(--je-header-offset);
+  z-index: 500;
+}
+
+.je-nav__inner {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--je-surface);
+  border: 1px solid var(--je-border);
+  border-radius: var(--je-radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.je-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: var(--font-up-1);
+  color: var(--je-text);
+  text-decoration: none;
+  padding-right: 14px;
+  margin-right: 6px;
+  border-right: 1px solid var(--je-border);
+
+  .d-icon {
+    color: var(--je-accent);
+    font-size: 1.1em;
+  }
+
+  &:hover {
+    color: var(--je-text);
+  }
+}
+
+.je-nav__items {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.je-nav__group {
+  position: relative;
+}
+
+.je-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  border: none;
+  border-radius: var(--je-pill);
+  padding: 7px 14px;
+  font-size: var(--font-0);
+  font-weight: normal;
+  line-height: 1;
+  color: var(--je-text-soft);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  .je-nav__icon {
+    display: inline-flex;
+    align-items: center;
+
+    .d-icon {
+      font-size: 1em;
+    }
+  }
+
+  .je-nav__caret {
+    font-size: 0.8em;
+    margin-left: -2px;
+    opacity: 0.7;
+    color: var(--je-text-soft);
+  }
+
+  &:hover {
+    background: var(--je-accent-light);
+    color: var(--je-text);
+  }
+
+  &.open {
+    background: var(--je-accent-light);
+    color: var(--je-text);
+  }
+
+  // Active = you are here. The accent fill + accent icon override any custom
+  // per-icon color so the current location is unmistakable.
+  &.active {
+    background: var(--je-accent-light);
+    color: var(--je-accent);
+    font-weight: 500;
+
+    .je-nav__icon .d-icon {
+      color: var(--je-accent) !important;
+    }
+  }
+}
+
+.je-nav__spacer {
+  flex: 1 1 auto;
+}
+
+.je-nav__sidebar-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--je-pill);
+  padding: 7px 10px;
+  cursor: pointer;
+  color: var(--je-text-soft);
+  transition: background 0.12s ease, color 0.12s ease;
+
+  .d-icon {
+    font-size: 1.05em;
+  }
+
+  &:hover {
+    background: var(--je-accent-light);
+    color: var(--je-text);
+  }
+
+  // When the sidebar is currently shown, the toggle reads as "active/pinned".
+  &.is-shown {
+    color: var(--je-accent);
+  }
+}
+
+.je-nav__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--je-accent-light);
+  color: var(--je-accent);
+  border: none;
+  border-radius: var(--je-pill);
+  padding: 7px 14px;
+  font-size: var(--font-down-1);
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(0.97);
+  }
+}
+
+.je-nav__dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 1000;
+  min-width: 240px;
+  background: var(--secondary);
+  border: 1px solid var(--je-border);
+  border-radius: var(--je-radius);
+  padding: 6px;
+  box-shadow: var(--shadow-dropdown, 0 2px 8px rgba(0, 0, 0, 0.12));
+}
+
+.je-nav__dropdown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--je-radius);
+  text-decoration: none;
+  color: var(--je-text);
+
+  .d-icon {
+    color: var(--je-text-soft);
+    font-size: 1em;
+  }
+
+  &:hover {
+    background: var(--je-accent-light);
+  }
+
+  &.active {
+    background: var(--je-accent-light);
+    color: var(--je-accent);
+
+    .d-icon {
+      color: var(--je-accent);
+    }
+  }
+}
+
+.je-nav__dropdown-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.je-nav__dropdown-label {
+  font-size: var(--font-0);
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.je-nav__dropdown-subtext {
+  font-size: var(--font-down-1);
+  color: var(--je-text-soft);
+  line-height: 1.3;
+}
+
+// --- Plaza mode: demote the Discourse sidebar -------------------------------
+// IMPORTANT: `desktop-view` lives on <html>, the mode class on <body>, so this
+// MUST be a descendant selector, not a compound one.
+// To DEMOTE rather than fully hide later, swap `display: none` for a narrower
+// width / reduced opacity — no JS change needed.
+html.desktop-view body.je-plaza-mode {
+  .sidebar-wrapper {
+    display: none;
+  }
+}
+
+// ── v2: mega menu + badges ──────────────────────────────────────────────
+// A dropdown whose children carry `section` labels becomes a mega panel:
+// one titled column per section, side by side. Without sections the panel
+// is the classic single column — v1 markup and spacing unchanged.
+
+.je-nav__dropdown--mega {
+  display: flex;
+  gap: 1.4em;
+  min-width: max-content;
+  max-width: min(760px, 90vw);
+
+  .je-nav__section {
+    min-width: 200px;
+    flex: 1 1 0;
+  }
+}
+
+.je-nav__section-title {
+  font-size: var(--font-down-2);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary-medium);
+  padding: 0.35em 0.75em 0.25em;
+  border-bottom: 1px solid var(--primary-low);
+  margin-bottom: 0.3em;
+  white-space: nowrap;
+}
+
+.je-nav__badge {
+  display: inline-block;
+  font-size: 0.62em;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  padding: 0.3em 0.55em;
+  border-radius: 1em;
+  background: var(--tertiary);
+  color: var(--secondary);
+  margin-left: 0.45em;
+  vertical-align: middle;
+}
+
+// ── v2.1: mobile rendering (je_nav_show_mobile) ─────────────────────────
+// Compact, horizontally scrollable strip; brand collapses to its icon;
+// dropdown panels open full-width under the strip and mega columns stack.
+// The sidebar pin toggle is desktop-only (Plaza mode doesn't run on
+// mobile), and the component hides it there via showSidebarToggle — these
+// rules only shape what actually renders.
+
+.mobile-view .je-nav {
+  &__inner {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  &__brand span {
+    display: none; // icon-only lockup on small screens
+  }
+
+  &__items {
+    flex-wrap: nowrap;
+  }
+
+  &__item {
+    padding: 0.45em 0.6em;
+    font-size: var(--font-down-1);
+    white-space: nowrap;
+  }
+
+  &__group {
+    position: static; // panels anchor to the strip, not the trigger
+  }
+
+  &__dropdown,
+  &__dropdown--mega {
+    position: fixed;
+    left: 0.5em;
+    right: 0.5em;
+    width: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+
+  &__dropdown--mega {
+    flex-direction: column;
+    gap: 0.4em;
+
+    .je-nav__section {
+      min-width: 0;
+    }
+  }
 }
