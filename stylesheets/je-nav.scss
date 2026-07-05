@@ -290,60 +290,14 @@ html.desktop-view body.je-plaza-mode {
   vertical-align: middle;
 }
 
-// ── v2.1: mobile rendering (je_nav_show_mobile) ─────────────────────────
-// Compact, horizontally scrollable strip; brand collapses to its icon;
-// dropdown panels open full-width under the strip and mega columns stack.
-// The sidebar pin toggle is desktop-only (Plaza mode doesn't run on
-// mobile), and the component hides it there via showSidebarToggle — these
-// rules only shape what actually renders.
-
-.mobile-view .je-nav {
-  &__inner {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-  }
-
-  &__brand span {
-    display: none; // icon-only lockup on small screens
-  }
-
-  &__items {
-    flex-wrap: nowrap;
-  }
-
-  &__item {
-    padding: 0.45em 0.6em;
-    font-size: var(--font-down-1);
-    white-space: nowrap;
-  }
-
-  &__group {
-    position: static; // panels anchor to the strip, not the trigger
-  }
-
-  &__dropdown,
-  &__dropdown--mega {
-    position: fixed;
-    left: 0.5em;
-    right: 0.5em;
-    width: auto;
-    min-width: 0;
-    max-width: none;
-    max-height: 70vh;
-    overflow-y: auto;
-  }
-
-  &__dropdown--mega {
-    flex-direction: column;
-    gap: 0.4em;
-
-    .je-nav__section {
-      min-width: 0;
-    }
-  }
-}
+// ── v3: viewport ownership ──────────────────────────────────────────────
+// The strip is desktop-only by construction: this file ships in the COMMON
+// bundle (see common/common.scss for why), the base rule above keeps
+// .je-nav display:none, and only .desktop-view reveals it. Mobile is owned
+// entirely by je-nav-mobile.scss (bottom bar + sheet).
+//
+// TAKEOVER MODE (stub): when je_nav_mode=takeover the initializer adds
+// body.je-nav-takeover. Future work styles against that hook to suppress
+// Discourse's native nav elements and make this component the sole
+// navigation. Deliberately unimplemented — the hook exists so the flip is
+// a CSS layer, not a refactor.

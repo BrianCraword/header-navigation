@@ -9,10 +9,17 @@ import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
 import DiscourseURL from "discourse/lib/url";
 import icon from "discourse-common/helpers/d-icon";
+import {
+  itemVisible,
+  orderedItems,
+  resolveHref,
+  sectionize,
+  urlMatches,
+} from "../../lib/je-nav-core";
 
 const SIDEBAR_PREF_KEY = "je_nav_sidebar_hidden";
 
-// ── Header Mega Nav (v2) ─────────────────────────────────────────────────
+// ── Header Mega Nav (v3) — desktop strip ────────────────────────────────
 //
 // One repo, many sites: the whole menu is the je_nav_destinations objects
 // setting, edited per site in the admin panel. This component only renders
@@ -27,27 +34,6 @@ const SIDEBAR_PREF_KEY = "je_nav_sidebar_hidden";
 //     (members/staff items stay hidden for them).
 //   • BADGES — an optional short `badge` chip (NEW, LIVE) per destination
 //     and per child, for launching a surface without redesigning the menu.
-
-function cleanURL(url) {
-  if (!url) {
-    return "";
-  }
-  return url.replace(/(\?|#).*/g, "").replace(/\/$/, "");
-}
-
-// True when `current` is at or under `target`. Home ("/") only matches exactly,
-// so it doesn't light up on every page.
-function urlMatches(target, current) {
-  const t = cleanURL(target);
-  const c = cleanURL(current);
-  if (!t || !c) {
-    return false;
-  }
-  if (t === "/" || t === "") {
-    return c === "/" || c === "";
-  }
-  return c === t || c.startsWith(t + "/");
-}
 
 export default class JeNav extends Component {
   @service router;
@@ -93,58 +79,22 @@ export default class JeNav extends Component {
     return settings.je_nav_sidebar_default_hidden;
   }
 
-  _resolve(href) {
-    if (!href) {
-      return "";
-    }
-    if (href.startsWith("/my/") && this.currentUser) {
-      return href.replace("/my/", `/u/${this.currentUser.username_lower}/`);
-    }
-    return href;
-  }
-
-  // show_when gate: all | members | staff. Unknown values fail open to
-  // "all" so a typo in the admin panel never blanks a menu item silently.
-  _visible(item) {
-    const w = item.show_when;
-    if (w === "staff") {
-      return !!this.currentUser?.staff;
-    }
-    if (w === "members") {
-      return !!this.currentUser;
-    }
-    return true;
-  }
-
   // Pre-compute all dynamic state into plain objects. The template only ever
   // reads simple properties (resolvedHref, isActive, isOpen, sections) —
   // never calls a method with arguments — the strict-mode-safe Glimmer
   // pattern. Recomputes when currentURL or openDropdown change (tracked).
   // Stable order-aware sort: items with an `order` number sort ascending;
   // items without keep their list position, after ordered ones on ties.
-  _ordered(list) {
-    return list
-      .map((item, idx) => ({ item, idx }))
-      .sort((a, b) => {
-        const ao = Number.isFinite(+a.item.order) && a.item.order !== null && a.item.order !== ""
-          ? +a.item.order : Number.MAX_SAFE_INTEGER;
-        const bo = Number.isFinite(+b.item.order) && b.item.order !== null && b.item.order !== ""
-          ? +b.item.order : Number.MAX_SAFE_INTEGER;
-        return ao === bo ? a.idx - b.idx : ao - bo;
-      })
-      .map((w) => w.item);
-  }
-
   get decoratedDestinations() {
     const current = this.currentURL;
-    return this._ordered(this.destinations)
-      .filter((dest) => this._visible(dest))
+    return orderedItems(this.destinations)
+      .filter((dest) => itemVisible(dest, this.currentUser))
       .map((dest) => {
         const isDropdown = dest.type === "dropdown";
-        const children = this._ordered(dest.children || [])
-          .filter((child) => this._visible(child))
+        const children = orderedItems(dest.children || [])
+          .filter((child) => itemVisible(child, this.currentUser))
           .map((child) => {
-            const href = this._resolve(child.href);
+            const href = resolveHref(child.href, this.currentUser);
             return {
               ...child,
               resolvedHref: href,
@@ -152,28 +102,14 @@ export default class JeNav extends Component {
             };
           });
 
-        // MEGA MENU: group children by `section`, preserving first-seen
-        // order. Children without a section form the untitled first group.
-        // One untitled group = the classic v1 single-column dropdown.
-        const sectionOrder = [];
-        const byTitle = new Map();
-        children.forEach((child) => {
-          const title = (child.section || "").trim();
-          if (!byTitle.has(title)) {
-            byTitle.set(title, []);
-            sectionOrder.push(title);
-          }
-          byTitle.get(title).push(child);
-        });
-        const sections = sectionOrder.map((title) => ({
-          title,
-          hasTitle: title.length > 0,
-          children: byTitle.get(title),
-        }));
+        // MEGA MENU: group children by `section` (shared sectionize —
+        // the mobile sheet renders the same groups). One untitled group
+        // = the classic v1 single-column dropdown.
+        const sections = sectionize(children);
         const isMega =
           sections.length > 1 || (sections.length === 1 && sections[0].hasTitle);
 
-        const resolvedHref = this._resolve(dest.href);
+        const resolvedHref = resolveHref(dest.href, this.currentUser);
         const isActive = isDropdown
           ? children.some((c) => c.isActive)
           : urlMatches(resolvedHref, current);

@@ -1,6 +1,6 @@
 en:
   theme_metadata:
-    description: "Per-site, admin-managed primary navigation strip with mega-menu dropdowns, visibility rules, and badges. The whole menu lives in theme settings — see the README."
+    description: "Per-site, admin-managed navigation system: desktop strip with mega-menu dropdowns, and a mobile bottom tab bar with an overflow sheet. One destination schema drives both. The whole menu lives in theme settings."
     settings:
       je_nav_destinations:
         description: "The primary navigation. Rows appear in 'order' (blank orders keep list position). type 'link' goes to href; 'dropdown' opens children — give children a 'section' label for mega-menu columns."
@@ -30,6 +30,9 @@ en:
             show_when:
               label: "Visible to"
               description: "all · members (logged-in) · staff."
+            mobile_pinned:
+              label: "Pin to mobile bar"
+              description: "Show as a tab on the mobile bottom bar. Unpinned destinations live behind the More sheet. If nothing is pinned, the first four destinations auto-pin."
             children:
               label: "Dropdown children"
               description: "Rows inside the dropdown panel."
@@ -55,7 +58,13 @@ en:
                   show_when:
                     label: "Visible to"
       je_nav_show_anon: "Show the strip to logged-out visitors (members/staff items stay hidden for them)."
-      je_nav_show_mobile: "Render the strip on mobile (compact, scrollable; dropdowns full-width)."
+      je_nav_show_mobile: "Render the mobile bottom nav (tab bar + More sheet) on phones."
+      je_nav_mobile_show_labels: "Show text labels under the bottom-bar tab icons."
+      je_nav_mobile_hide_on_scroll: "Hide the bar scrolling down, reveal it scrolling up."
+      je_nav_mobile_more_label: "Label on the overflow tab."
+      je_nav_mobile_more_icon: "Icon on the overflow tab."
+      je_nav_mobile_suppress_classes: "Body classes marking routes where the bottom bar hides (immersive surfaces)."
+      je_nav_mode: "strip = alongside native chrome · takeover = reserved for a future sole-navigation mode."
       je_nav_show_brand: "Show the brand lockup (icon + name) at the left of the strip."
       je_nav_brand_label: "Text shown in the brand lockup — set per site."
       je_nav_brand_icon: "FontAwesome icon name for the brand lockup."

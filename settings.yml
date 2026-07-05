@@ -76,6 +76,9 @@ je_nav_destinations:
           - all
           - members
           - staff
+      mobile_pinned:
+        type: boolean
+        default: false
       children:
         type: objects
         schema:
@@ -114,7 +117,7 @@ je_nav_show_anon:
   default: false
 
 je_nav_show_mobile:
-  description: "Render the strip on mobile too (compact, horizontally scrollable; dropdowns open full-width). OFF preserves the desktop-only behavior for sites where another component owns mobile navigation."
+  description: "Render the MOBILE BOTTOM NAV (tab bar + sheet) on phones. Destinations with mobile_pinned become tabs; the rest live behind the More sheet. OFF leaves mobile navigation to another component. (v2's mobile strip is retired — this switch now controls the bottom bar.)"
   type: bool
   default: false
 
@@ -153,6 +156,42 @@ je_nav_forum_route_classes:
   type: list
   list_type: compact
   default: "navigation-categories|navigation-topics|navigation-category|categories-list"
+
+# ── v3: mobile bottom nav ────────────────────────────────────────────────
+
+je_nav_mobile_show_labels:
+  description: "Show a small text label under each tab icon on the mobile bottom bar. OFF renders icon-only tabs."
+  type: bool
+  default: true
+
+je_nav_mobile_hide_on_scroll:
+  description: "Slip the bottom bar away while scrolling down and bring it back on scroll up (always visible near the top of the page and while the sheet is open). OFF keeps the bar permanently visible."
+  type: bool
+  default: true
+
+je_nav_mobile_more_label:
+  description: "Label on the trailing overflow tab that opens the full destination sheet."
+  type: string
+  default: "More"
+
+je_nav_mobile_more_icon:
+  description: "FontAwesome icon for the overflow tab."
+  type: string
+  default: "ellipsis"
+
+je_nav_mobile_suppress_classes:
+  description: "Body classes marking immersive routes where the bottom bar stands down entirely (e.g. the AI conversations page, whose docked composer owns the bottom edge). The bar and content padding return automatically on leaving the route."
+  type: list
+  list_type: compact
+  default: "ai-bot-conversations-page"
+
+je_nav_mode:
+  description: "strip = the navigation renders alongside Discourse's native chrome (current behavior). takeover = RESERVED for a future release where this component becomes the site's sole navigation; today it only adds a body class (je-nav-takeover) and changes nothing visible."
+  type: enum
+  default: strip
+  choices:
+    - strip
+    - takeover
 
 svg_icons:
   default: "cross|scroll|trophy"
