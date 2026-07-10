@@ -1,0 +1,52 @@
+en:
+  js:
+    vc_feed:
+      title: "Feed"
+      header: "Community Feed"
+      tabs:
+        latest: "Latest"
+      editor:
+        upload: "Add an image"
+        min_hint:
+          one: "%{count} more character to post"
+          other: "%{count} more characters to post"
+      composer_placeholder: "What is the Lord teaching you today?"
+      composer_cta: "Share what the Lord is teaching you"
+      composer_cta_chip: "New Post"
+      post_button: "Post"
+      empty: "The wall is quiet. Be the first to share."
+      show_more: "Show more"
+      show_less: "Show less"
+      back_to_feed: "Feed"
+      thread:
+        title: "Post"
+        close: "Back"
+        open_full: "Open full discussion"
+        reply_placeholder: "Post your reply"
+        replying_to: "Replying to @%{username}"
+        reply_button: "Reply"
+      rail:
+        campaign: "Scripture Campaign"
+        campaign_link: "Walk with us"
+        trivia: "Bible Trivia"
+        trivia_community: "%{count} questions answered by the community"
+        trivia_link: "Play today"
+        online: "Online now"
+        top_week: "Top this week"
+        tags: "Trending tags"
+        hot: "Hot this week"
+        community: "Our community"
+        members: "members"
+        posts: "posts"
+        active: "active this week"
+        latest: "Latest discussions"
+      cards:
+        dismiss: "Dismiss"
+        campaign_open: "A new scene is open — %{walked} of %{count} walked so far"
+        campaign_walked: "You've walked this scene — %{walked} of %{count} revealed"
+        trivia_completed: "The contest is complete — final standings are in"
+        trivia_open: "Day %{day} is live — take today's questions"
+        trivia_entered: "You're in — Day %{day} questions are waiting"
+      new_posts_pill:
+        one: "%{count} new post"
+        other: "%{count} new posts"

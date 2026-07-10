@@ -1,0 +1,34 @@
+plugins:
+  vc_feed_enabled:
+    default: false
+    client: true
+
+  # The wall is the UNION of these categories (§12.1); a topic
+  # recategorized between them never leaves the wall. The FIRST entry is
+  # the compose target — where title-less microposts are born.
+  # Default 1 = Community Feed on VC.
+  vc_feed_categories:
+    default: "1"
+    type: category_list
+    client: true
+
+  # 11 = trust_level_1 auto group (Group::AUTO_GROUPS[:trust_level_1]) —
+  # same gating convention as bible_trivia_allowed_groups. TL0 reads the
+  # wall; posting asks for the first rung of trust.
+  vc_feed_post_allowed_groups:
+    default: "11"
+    type: group_list
+    client: true
+
+  # Consumed by TitleGenerator (ADR-F4). Kept as a setting so the visible
+  # length of generated titles in core surfaces (search, digests) is
+  # tunable without a rebuild.
+  vc_feed_title_length:
+    default: 50
+    client: false
+
+  # ── Phase 2 (reserved): card interleaving ────────────────────────────
+  # Minimum member posts between program cards in the stream.
+  feed_card_spacing:
+    default: 3
+    client: true
