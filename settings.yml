@@ -180,10 +180,10 @@ je_nav_mobile_more_icon:
   default: "ellipsis"
 
 je_nav_mobile_suppress_classes:
-  description: "Body classes marking immersive routes where the bottom bar stands down entirely (e.g. the AI conversations page, whose docked composer owns the bottom edge). The bar and content padding return automatically on leaving the route."
+  description: "Classes (checked on BOTH html and body) marking immersive states where the bottom bar stands down entirely: routes like the AI conversations page, and overlay states like the open composer (composer-open lives on the html element). The bar and content padding return automatically when the class clears."
   type: list
   list_type: compact
-  default: "ai-bot-conversations-page"
+  default: "ai-bot-conversations-page|composer-open"
 
 je_nav_mode:
   description: "strip = the navigation renders alongside Discourse's native chrome (current behavior). takeover = RESERVED for a future release where this component becomes the site's sole navigation; today it only adds a body class (je-nav-takeover) and changes nothing visible."

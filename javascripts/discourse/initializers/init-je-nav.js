@@ -47,10 +47,20 @@ export default apiInitializer("1.8.0", (api) => {
       .map((c) => c.trim())
       .filter(Boolean);
 
-    function applyMobileMode() {
-      const suppressed = suppressClasses.some((c) =>
-        document.body.classList.contains(c)
+    // Suppress classes live on EITHER element: route classes land on
+    // <body> (ai-bot-conversations-page), while core puts composer-open
+    // on <html> (verified: models/composer.js adds it to
+    // document.documentElement; core SCSS keys html.composer-open).
+    function suppressActive() {
+      return suppressClasses.some(
+        (c) =>
+          document.body.classList.contains(c) ||
+          document.documentElement.classList.contains(c)
       );
+    }
+
+    function applyMobileMode() {
+      const suppressed = suppressActive();
       document.body.classList.toggle("je-nav-mobile-on", !suppressed);
       document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
     }
@@ -60,6 +70,32 @@ export default apiInitializer("1.8.0", (api) => {
       // async around page change; a second pass catches late arrivals.
       requestAnimationFrame(applyMobileMode);
       setTimeout(applyMobileMode, 150);
+    });
+
+    // The composer is a STATE, not a route — opening it flips a class with
+    // no page-change event. Watch class mutations on both elements so any
+    // suppress class takes effect the instant it appears. rAF-coalesced;
+    // no feedback loop: classList.toggle to an unchanged state does not
+    // mutate the attribute, so the observer settles after one pass.
+    let mutationScheduled = false;
+    const onClassMutation = () => {
+      if (mutationScheduled) {
+        return;
+      }
+      mutationScheduled = true;
+      requestAnimationFrame(() => {
+        mutationScheduled = false;
+        applyMobileMode();
+      });
+    };
+    const classObserver = new MutationObserver(onClassMutation);
+    classObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    classObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
     });
 
     api.renderInOutlet("above-main-container", JeNavMobile);

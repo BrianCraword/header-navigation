@@ -63,7 +63,7 @@ en:
       je_nav_mobile_hide_on_scroll: "Hide the bar scrolling down, reveal it scrolling up."
       je_nav_mobile_more_label: "Label on the overflow tab."
       je_nav_mobile_more_icon: "Icon on the overflow tab."
-      je_nav_mobile_suppress_classes: "Body classes marking routes where the bottom bar hides (immersive surfaces)."
+      je_nav_mobile_suppress_classes: "Classes on html or body marking states where the bottom bar hides (immersive routes, open composer)."
       je_nav_mode: "strip = alongside native chrome · takeover = reserved for a future sole-navigation mode."
       je_nav_show_brand: "Show the brand lockup (icon + name) at the left of the strip."
       je_nav_brand_label: "Text shown in the brand lockup — set per site."
