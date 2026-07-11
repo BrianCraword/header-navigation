@@ -1,0 +1,415 @@
+// je-nav-mobile.scss — the mobile bottom nav system.
+//
+// LIVES IN THE COMMON BUNDLE (imported from common/common.scss) because
+// Discourse 2026 media-gates the desktop/mobile theme bundles by viewport
+// WIDTH (width >= 40rem) while the component's JS decides by DEVICE
+// (site.mobileView). Putting rules in common and gating with the
+// .mobile-view class keeps CSS delivery and JS behavior in agreement —
+// the v2 mobile strip died precisely because its rules shipped inside the
+// width-gated desktop bundle and never reached a phone.
+//
+// Z-INDEX LADDER (site-wide, keep coordinated):
+//   1000-ish  Discourse header
+//   1200      je-mnav scrim
+//   1210      je-mnav sheet
+//   1220      je-mnav bar (above its own sheet, so it stays tappable)
+//   10100     AI conversations side panels — always supreme on their route
+//             (the bar is suppressed there anyway; see suppression below)
+
+.mobile-view {
+  // Design tokens — Plaza palette with core fallbacks, same contract as
+  // the desktop strip.
+  .je-mnav-root {
+    --je-accent: var(--plaza-accent, var(--tertiary));
+    --je-accent-light: var(--plaza-accent-light, var(--highlight));
+    --je-pop: var(--plaza-pop, var(--love));
+    --je-surface: var(--secondary);
+    --je-border: var(--primary-200, rgba(0, 0, 0, 0.1));
+    --je-text: var(--primary);
+    --je-text-soft: var(--primary-medium, var(--primary));
+    --je-radius: var(--d-border-radius, 8px);
+    --je-mnav-height: 56px;
+    // The Apple-standard sheet ease — decisive start, soft landing.
+    --je-mnav-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  // ── The bar ────────────────────────────────────────────────────────
+
+  .je-mnav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1220;
+    // Frosted glass over content scrolling beneath.
+    background: color-mix(in srgb, var(--je-surface) 84%, transparent);
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    border-top: 1px solid var(--je-border);
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.07);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transform: translateY(0);
+    transition: transform 0.32s var(--je-mnav-ease);
+
+    // Hide-on-scroll: slide fully off, safe-area included.
+    &.is-hidden {
+      transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px)));
+    }
+  }
+
+  .je-mnav__bar {
+    display: flex;
+    align-items: stretch;
+    height: var(--je-mnav-height);
+    // NO CEILING: past ~5 tabs the row scrolls horizontally instead of
+    // crushing. Each tab keeps a comfortable minimum touch width.
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .je-mnav__tab {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    padding: 6px 4px;
+    color: var(--je-text-soft);
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    // Press feedback — quick dip, springy return.
+    transition: transform 0.18s var(--je-mnav-ease);
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+
+  .je-mnav__tab-icon {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    z-index: 0;
+
+    .d-icon {
+      font-size: 1.15em;
+      transition: transform 0.25s var(--je-mnav-ease),
+        color 0.15s ease;
+    }
+
+    // The active pill grows in behind the icon.
+    &::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: var(--je-accent-light);
+      transform: scale(0.4);
+      opacity: 0;
+      transition: transform 0.3s var(--je-mnav-ease),
+        opacity 0.2s ease;
+      z-index: -1;
+    }
+  }
+
+  .je-mnav__tab-label {
+    font-size: 0.66rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.01em;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: color 0.15s ease;
+  }
+
+  .je-mnav__tab.active,
+  .je-mnav__tab.open {
+    color: var(--je-accent);
+
+    .je-mnav__tab-icon::before {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .je-mnav__tab-icon .d-icon {
+      color: var(--je-accent) !important;
+      transform: translateY(-1px);
+    }
+
+    .je-mnav__tab-label {
+      font-weight: 700;
+    }
+  }
+
+  // Badge chip pinned to the icon's shoulder (NEW / LIVE).
+  .je-mnav__tab-badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    font-size: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    padding: 0.25em 0.45em;
+    border-radius: 1em;
+    background: var(--je-pop);
+    color: var(--secondary);
+    pointer-events: none;
+  }
+
+  // Quiet dot on the More tab when something inside carries a badge.
+  .je-mnav__tab-dot {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--je-pop);
+    border: 1.5px solid var(--je-surface);
+    pointer-events: none;
+  }
+
+  // ── The scrim ──────────────────────────────────────────────────────
+
+  .je-mnav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    background: rgba(0, 0, 0, 0.38);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.28s ease;
+
+    &.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  // ── The sheet ──────────────────────────────────────────────────────
+
+  .je-mnav-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    // Sits flush on the bar so the two read as one piece of chrome.
+    bottom: calc(var(--je-mnav-height) + env(safe-area-inset-bottom, 0px));
+    z-index: 1210;
+    max-height: min(72vh, 560px);
+    display: flex;
+    flex-direction: column;
+    background: var(--je-surface);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border: 1px solid var(--je-border);
+    border-bottom: none;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.16);
+    transform: translateY(calc(100% + var(--je-mnav-height) + 24px));
+    visibility: hidden;
+    transition: transform 0.34s var(--je-mnav-ease),
+      visibility 0s linear 0.34s;
+
+    &.is-open {
+      transform: translateY(0);
+      visibility: visible;
+      transition: transform 0.34s var(--je-mnav-ease),
+        visibility 0s;
+    }
+  }
+
+  .je-mnav-sheet__handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--primary-low-mid, var(--je-border));
+    margin: 8px auto 0;
+    flex: 0 0 auto;
+  }
+
+  .je-mnav-sheet__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 6px 18px;
+    flex: 0 0 auto;
+  }
+
+  .je-mnav-sheet__title {
+    font-size: var(--font-up-1);
+    font-weight: 700;
+    color: var(--je-text);
+  }
+
+  .je-mnav-sheet__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary-very-low, transparent);
+    color: var(--je-text-soft);
+    cursor: pointer;
+  }
+
+  .je-mnav-sheet__body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0 10px calc(14px + env(safe-area-inset-bottom, 0px));
+    overscroll-behavior: contain;
+  }
+
+  .je-mnav-sheet__group {
+    & + & {
+      margin-top: 10px;
+    }
+  }
+
+  .je-mnav-sheet__group-title {
+    font-size: var(--font-down-2);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--je-text-soft);
+    padding: 10px 10px 4px;
+  }
+
+  .je-mnav-sheet__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 10px;
+    border-radius: var(--je-radius);
+    color: var(--je-text);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+
+    &:active {
+      background: var(--je-accent-light);
+    }
+
+    &.active {
+      background: var(--je-accent-light);
+      color: var(--je-accent);
+
+      .je-mnav-sheet__row-icon .d-icon {
+        color: var(--je-accent);
+      }
+    }
+  }
+
+  .je-mnav-sheet__row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--primary-very-low, transparent);
+    flex: 0 0 auto;
+
+    .d-icon {
+      font-size: 1em;
+      color: var(--je-text-soft);
+    }
+  }
+
+  .je-mnav-sheet__row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .je-mnav-sheet__row-label {
+    font-size: var(--font-0);
+    font-weight: 500;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .je-mnav-sheet__row-subtext {
+    font-size: var(--font-down-1);
+    color: var(--je-text-soft);
+    line-height: 1.3;
+  }
+
+  .je-mnav-sheet__row-caret {
+    flex: 0 0 auto;
+    font-size: 0.8em;
+    color: var(--je-text-soft);
+    opacity: 0.55;
+  }
+
+  // Sheet rows reuse the strip's badge chip class.
+  .je-mnav-sheet__row-label .je-nav__badge {
+    background: var(--je-accent);
+    color: var(--secondary);
+  }
+
+  // Reduced motion: keep the states, drop the theater.
+  @media (prefers-reduced-motion: reduce) {
+    .je-mnav,
+    .je-mnav-sheet,
+    .je-mnav-scrim,
+    .je-mnav__tab,
+    .je-mnav__tab-icon .d-icon,
+    .je-mnav__tab-icon::before {
+      transition: none;
+    }
+  }
+}
+
+// ── Body coordination (classes owned by the initializer) ────────────────
+// IMPORTANT: `mobile-view` lives on <html>, these mode classes on <body> —
+// descendant selectors, never compound (the same trap documented on the
+// desktop Plaza-mode rule).
+
+// Content never hides under the bar.
+html.mobile-view body.je-nav-mobile-on {
+  #main-outlet-wrapper,
+  #main-outlet {
+    padding-bottom: calc(
+      var(--je-mnav-height, 56px) + env(safe-area-inset-bottom, 0px) + 8px
+    );
+  }
+}
+
+// Immersive routes (docked AI composer, etc. — see
+// je_nav_mobile_suppress_classes): the whole system stands down.
+html.mobile-view body.je-nav-mobile-suppressed {
+  .je-mnav,
+  .je-mnav-scrim,
+  .je-mnav-sheet {
+    display: none;
+  }
+}
+
+// Scroll lock while the sheet is open.
+html.mobile-view body.je-nav-sheet-open {
+  overflow: hidden;
+}

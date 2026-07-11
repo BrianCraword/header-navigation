@@ -1,0 +1,15 @@
+// common/common.scss — the ONLY stylesheet entry point for this component.
+//
+// v2 imported je-nav.scss from desktop/desktop.scss, and Discourse 2026
+// media-gates that bundle by viewport WIDTH: media="(width >= 40rem)".
+// Below 640px not one rule shipped — the mobile strip rules were inside
+// the desktop bundle, dead on arrival, and phones rendered raw unstyled
+// markup. Everything now lives in the common bundle and gates on the
+// .mobile-view / .desktop-view classes, which is what the component JS
+// keys on too — CSS delivery and JS behavior can no longer disagree.
+//
+// If a desktop/ or mobile/ directory reappears in this repo, that is a
+// regression: delete it.
+
+@import "je-nav";
+@import "je-nav-mobile";
