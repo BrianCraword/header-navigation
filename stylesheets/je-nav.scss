@@ -14,18 +14,20 @@
   // Sticky offset = height of the Discourse header.
   --je-header-offset: var(--header-offset, 53px);
 
-  display: none; // desktop only, enabled below
+  display: none; // desktop only, enabled below at the sm breakpoint
   width: 100%;
   margin-bottom: 1rem;
 }
 
-.desktop-view .je-nav {
-  display: block;
-  // Sticky band: tucks just below the native (already sticky) Discourse header
-  // and stays visible on scroll.
-  position: sticky;
-  top: var(--je-header-offset);
-  z-index: 500;
+@media (width >= 40rem) {
+  .je-nav {
+    display: block;
+    // Sticky band: tucks just below the native (already sticky) Discourse header
+    // and stays visible on scroll.
+    position: sticky;
+    top: var(--je-header-offset);
+    z-index: 500;
+  }
 }
 
 .je-nav__inner {
@@ -236,13 +238,13 @@
 }
 
 // --- Plaza mode: demote the Discourse sidebar -------------------------------
-// IMPORTANT: `desktop-view` lives on <html>, the mode class on <body>, so this
-// MUST be a descendant selector, not a compound one.
 // To DEMOTE rather than fully hide later, swap `display: none` for a narrower
 // width / reduced opacity — no JS change needed.
-html.desktop-view body.je-plaza-mode {
-  .sidebar-wrapper {
-    display: none;
+@media (width >= 40rem) {
+  body.je-plaza-mode {
+    .sidebar-wrapper {
+      display: none;
+    }
   }
 }
 
@@ -292,9 +294,8 @@ html.desktop-view body.je-plaza-mode {
 
 // ── v3: viewport ownership ──────────────────────────────────────────────
 // The strip is desktop-only by construction: this file ships in the COMMON
-// bundle (see common/common.scss for why), the base rule above keeps
-// .je-nav display:none, and only .desktop-view reveals it. Mobile is owned
-// entirely by je-nav-mobile.scss (bottom bar + sheet).
+// bundle, the base rule above keeps .je-nav display:none, and the 40rem media
+// query reveals it. Mobile is owned entirely by je-nav-mobile.scss.
 //
 // TAKEOVER MODE (stub): when je_nav_mode=takeover the initializer adds
 // body.je-nav-takeover. Future work styles against that hook to suppress

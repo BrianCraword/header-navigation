@@ -3,8 +3,8 @@
   "component": true,
   "license_url": null,
   "about_url": null,
-  "authors": "Brian Crawford",
-  "theme_version": "3.0.1",
+  "authors": null,
+  "theme_version": "4.0.0",
   "minimum_discourse_version": null,
   "maximum_discourse_version": null,
   "assets": {},
@@ -26,7 +26,12 @@
       "cross",
       "ellipsis",
       "xmark",
-      "angle-right"
+      "angle-right",
+      "user",
+      "gear",
+      "bookmark",
+      "medal",
+      "camera"
     ]
   },
   "learn_more": "https://meta.discourse.org/t/beginners-guide-to-using-discourse-themes/91966"

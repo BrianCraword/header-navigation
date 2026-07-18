@@ -8,6 +8,8 @@ import { htmlSafe } from "@ember/template";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
 import DiscourseURL from "discourse/lib/url";
+import { ajax } from "discourse/lib/ajax";
+import avatar from "discourse/helpers/avatar";
 import icon from "discourse-common/helpers/d-icon";
 import {
   itemVisible,
@@ -45,25 +47,51 @@ const SCROLL_DELTA_MIN = 6; // ignore jitter smaller than this
 export default class JeNavMobile extends Component {
   @service router;
   @service currentUser;
+  @service capabilities;
 
   @tracked currentURL = this.router.currentURL || "/";
   @tracked barHidden = false;
   // null = closed · "__more__" = full overflow sheet · any other string =
   // the label of the pinned dropdown whose contextual sheet is open.
   @tracked sheetKey = null;
+  // v4: the identity sheet — the mobile hero, summoned instead of
+  // squatting. Opens from the avatar tab, the More-sheet profile row,
+  // or any surface dispatching the "je-nav:identity:open" event (the
+  // vc-feed porch avatar does).
+  @tracked identityOpen = false;
+  @tracked identityStats = null;
 
   destinations = settings.je_nav_destinations || [];
   showLabels = settings.je_nav_mobile_show_labels;
   hideOnScroll = settings.je_nav_mobile_hide_on_scroll;
   moreLabel = settings.je_nav_mobile_more_label || "More";
   moreIcon = settings.je_nav_mobile_more_icon || "ellipsis";
+  avatarTab = settings.je_nav_mobile_avatar_tab;
+  identityLinks = settings.je_nav_identity_links || [];
+  identityPrimaryLabel =
+    settings.je_nav_identity_primary_label || "Update your profile";
+  identityPrimaryHref =
+    settings.je_nav_identity_primary_href || "/steering/profile";
   showAnon = settings.je_nav_show_anon;
+  showMobile = settings.je_nav_show_mobile;
+  suppressClasses = (settings.je_nav_mobile_suppress_classes || "")
+    .split("|")
+    .map((className) => className.trim())
+    .filter(Boolean);
 
   _lastY = 0;
   _scrollTicking = false;
+  _mobileMounted = false;
+  _mobileModeFrame = null;
+  _mobileModeTimer = null;
+  _classObserver = null;
 
   get showBar() {
-    return !!this.currentUser || this.showAnon;
+    return (
+      this.showMobile &&
+      (!!this.currentUser || this.showAnon) &&
+      !this.capabilities.viewport.sm
+    );
   }
 
   // ── Destination decoration ────────────────────────────────────────────
@@ -115,6 +143,7 @@ export default class JeNavMobile extends Component {
     const tabs = pinned.map((dest) => ({
       key: dest.label,
       kind: dest.isDropdown ? "dropdown" : "link",
+      emphasis: dest.emphasis === true,
       label: dest.label,
       icon: dest.icon,
       badge: dest.badge,
@@ -144,6 +173,21 @@ export default class JeNavMobile extends Component {
         iconStyle: null,
       });
     }
+    if (this.avatarTab && this.currentUser) {
+      tabs.push({
+        key: "__me__",
+        kind: "identity",
+        label: "You",
+        icon: null,
+        emphasis: false,
+        avatarUser: this.currentUser,
+        badge: null,
+        resolvedHref: null,
+        isActive: false,
+        isOpen: this.identityOpen,
+        iconStyle: null,
+      });
+    }
     return tabs;
   }
 
@@ -151,6 +195,69 @@ export default class JeNavMobile extends Component {
 
   get sheetOpen() {
     return this.sheetKey !== null;
+  }
+
+  get overlayOpen() {
+    return this.sheetOpen || this.identityOpen;
+  }
+
+  get moreProfileVisible() {
+    return this.sheetKey === "__more__" && !!this.currentUser;
+  }
+
+  // ── Identity sheet model (v4) ─────────────────────────────────────────
+
+  get identityName() {
+    return this.currentUser?.name || this.currentUser?.username || "";
+  }
+
+  get changePhotoHref() {
+    // The one place changing your photo must always be a SNAP: the
+    // account preferences page, where the avatar selector lives.
+    return resolveHref("/my/preferences/account", this.currentUser);
+  }
+
+  get identityPrimaryResolved() {
+    return resolveHref(this.identityPrimaryHref, this.currentUser);
+  }
+
+  get identityRows() {
+    return orderedItems(this.identityLinks)
+      .filter((link) => itemVisible(link, this.currentUser))
+      .map((link) => ({
+        key: link.label,
+        label: link.label,
+        icon: link.icon || "angle-right",
+        resolvedHref: resolveHref(link.href, this.currentUser),
+      }));
+  }
+
+  get statChips() {
+    const s = this.identityStats;
+    if (!s) {
+      return [];
+    }
+    return [
+      { key: "received", value: s.likes_received ?? 0, label: "hearts received" },
+      { key: "given", value: s.likes_given ?? 0, label: "hearts given" },
+      { key: "topics", value: s.topic_count ?? 0, label: "topics" },
+      { key: "posts", value: s.post_count ?? 0, label: "posts" },
+      { key: "days", value: s.days_visited ?? 0, label: "days walked" },
+    ];
+  }
+
+  async _loadIdentityStats() {
+    if (this.identityStats || !this.currentUser) {
+      return;
+    }
+    try {
+      const res = await ajax(
+        `/u/${this.currentUser.username_lower}/summary.json`
+      );
+      this.identityStats = res?.user_summary || null;
+    } catch {
+      this.identityStats = null; // chips simply don't render
+    }
   }
 
   get sheetTitle() {
@@ -242,11 +349,14 @@ export default class JeNavMobile extends Component {
 
   @action
   setup() {
+    this._mobileMounted = true;
     this.routeListener = () => {
       this.currentURL = this.router.currentURL || "/";
       this._closeSheet();
+      this._closeIdentity();
       this.barHidden = false;
       this._lastY = Math.max(0, window.scrollY);
+      this._scheduleMobileMode(true);
     };
     this.router.on("routeDidChange", this.routeListener);
 
@@ -255,17 +365,104 @@ export default class JeNavMobile extends Component {
       window.addEventListener("scroll", this.onScroll, { passive: true });
     }
     document.addEventListener("keydown", this.onKeydown);
+
+    // Other surfaces (the vc-feed porch avatar) summon the identity
+    // sheet through this event; preventDefault signals "claimed", so
+    // the dispatcher knows not to fall back to a navigation.
+    this.onIdentityRequest = (event) => {
+      event.preventDefault();
+      this.openIdentity();
+    };
+    document.addEventListener("je-nav:identity:open", this.onIdentityRequest);
+
+    // Route classes live on <body>, while state classes such as
+    // composer-open live on <html>. Observe both so suppression responds to
+    // route transitions and overlays that do not emit a route change.
+    this._classObserver = new MutationObserver(this.onClassMutation);
+    this._classObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    this._classObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+    this._scheduleMobileMode(true);
   }
 
   @action
   teardown() {
+    this._mobileMounted = false;
+    if (this._mobileModeFrame !== null) {
+      cancelAnimationFrame(this._mobileModeFrame);
+      this._mobileModeFrame = null;
+    }
+    if (this._mobileModeTimer !== null) {
+      clearTimeout(this._mobileModeTimer);
+      this._mobileModeTimer = null;
+    }
+    this._classObserver?.disconnect();
+    this._classObserver = null;
     if (this.routeListener) {
       this.router.off("routeDidChange", this.routeListener);
     }
     window.removeEventListener("scroll", this.onScroll);
     document.removeEventListener("keydown", this.onKeydown);
+    if (this.onIdentityRequest) {
+      document.removeEventListener(
+        "je-nav:identity:open",
+        this.onIdentityRequest
+      );
+    }
     document.body.classList.remove("je-nav-sheet-open");
+    document.body.classList.remove(
+      "je-nav-mobile-on",
+      "je-nav-mobile-suppressed"
+    );
   }
+
+  _suppressActive() {
+    return this.suppressClasses.some(
+      (className) =>
+        document.body.classList.contains(className) ||
+        document.documentElement.classList.contains(className)
+    );
+  }
+
+  _applyMobileMode() {
+    if (!this._mobileMounted) {
+      return;
+    }
+    const suppressed = this._suppressActive();
+    document.body.classList.toggle("je-nav-mobile-on", !suppressed);
+    document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
+  }
+
+  _scheduleMobileMode(delayed = false) {
+    if (!this._mobileMounted) {
+      return;
+    }
+    if (this._mobileModeFrame === null) {
+      this._mobileModeFrame = requestAnimationFrame(() => {
+        this._mobileModeFrame = null;
+        this._applyMobileMode();
+      });
+    }
+    if (delayed) {
+      if (this._mobileModeTimer !== null) {
+        clearTimeout(this._mobileModeTimer);
+      }
+      // Route-owned body classes can land after routeDidChange.
+      this._mobileModeTimer = setTimeout(() => {
+        this._mobileModeTimer = null;
+        this._applyMobileMode();
+      }, 150);
+    }
+  }
+
+  onClassMutation = () => {
+    this._scheduleMobileMode();
+  };
 
   onScroll = () => {
     if (this._scrollTicking) {
@@ -274,7 +471,7 @@ export default class JeNavMobile extends Component {
     this._scrollTicking = true;
     requestAnimationFrame(() => {
       this._scrollTicking = false;
-      if (this.sheetOpen) {
+      if (this.overlayOpen) {
         return; // never hide under an open sheet
       }
       const y = Math.max(0, window.scrollY); // iOS rubber-band guard
@@ -292,8 +489,9 @@ export default class JeNavMobile extends Component {
   };
 
   onKeydown = (event) => {
-    if (event.key === "Escape" && this.sheetOpen) {
+    if (event.key === "Escape" && this.overlayOpen) {
       this._closeSheet();
+      this._closeIdentity();
     }
   };
 
@@ -305,7 +503,27 @@ export default class JeNavMobile extends Component {
 
   _closeSheet() {
     this.sheetKey = null;
-    document.body.classList.remove("je-nav-sheet-open");
+    if (!this.identityOpen) {
+      document.body.classList.remove("je-nav-sheet-open");
+    }
+  }
+
+  openIdentity() {
+    this.sheetKey = null;
+    this.identityOpen = true;
+    this.barHidden = false;
+    document.body.classList.add("je-nav-sheet-open");
+    this._loadIdentityStats();
+  }
+
+  _closeIdentity() {
+    if (!this.identityOpen) {
+      return;
+    }
+    this.identityOpen = false;
+    if (this.sheetKey === null) {
+      document.body.classList.remove("je-nav-sheet-open");
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────
@@ -313,6 +531,15 @@ export default class JeNavMobile extends Component {
   @action
   tabTap(tab, event) {
     event?.preventDefault();
+    if (tab.kind === "identity") {
+      if (this.identityOpen) {
+        this._closeIdentity();
+      } else {
+        this.openIdentity();
+      }
+      return;
+    }
+    this._closeIdentity();
     if (tab.kind === "link") {
       this._closeSheet();
       DiscourseURL.routeTo(tab.resolvedHref);
@@ -340,6 +567,32 @@ export default class JeNavMobile extends Component {
   }
 
   @action
+  closeIdentity(event) {
+    event?.preventDefault();
+    this._closeIdentity();
+  }
+
+  @action
+  closeAll(event) {
+    event?.preventDefault();
+    this._closeSheet();
+    this._closeIdentity();
+  }
+
+  @action
+  identityRowTap(href, event) {
+    event?.preventDefault();
+    this._closeIdentity();
+    DiscourseURL.routeTo(href);
+  }
+
+  @action
+  moreProfileTap(event) {
+    event?.preventDefault();
+    this.openIdentity();
+  }
+
+  @action
   stop(event) {
     event.stopPropagation();
   }
@@ -353,9 +606,9 @@ export default class JeNavMobile extends Component {
       >
         {{! Scrim — mounted always so open/close both transition }}
         <div
-          class="je-mnav-scrim {{if this.sheetOpen 'is-open'}}"
+          class="je-mnav-scrim {{if this.overlayOpen 'is-open'}}"
           aria-hidden="true"
-          {{on "click" this.closeSheet}}
+          {{on "click" this.closeAll}}
         ></div>
 
         {{! Bottom sheet }}
@@ -379,6 +632,24 @@ export default class JeNavMobile extends Component {
             </button>
           </div>
           <div class="je-mnav-sheet__body">
+            {{#if this.moreProfileVisible}}
+              <button
+                type="button"
+                class="je-mnav-identity-row"
+                {{on "click" this.moreProfileTap}}
+              >
+                {{avatar this.currentUser imageSize="medium"}}
+                <span class="je-mnav-identity-row__text">
+                  <span class="je-mnav-identity-row__name">
+                    {{this.identityName}}
+                  </span>
+                  <span class="je-mnav-identity-row__sub">
+                    View your profile
+                  </span>
+                </span>
+                {{icon "angle-right"}}
+              </button>
+            {{/if}}
             {{#each this.sheetGroups key="title" as |group|}}
               <div class="je-mnav-sheet__group">
                 {{#if group.hasTitle}}
@@ -414,6 +685,92 @@ export default class JeNavMobile extends Component {
           </div>
         </div>
 
+        {{! Identity sheet (v4) — the mobile hero, one tap away }}
+        <div
+          class="je-mnav-sheet je-mnav-identity {{if this.identityOpen 'is-open'}}"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Your profile"
+          {{on "click" this.stop}}
+        >
+          <div class="je-mnav-sheet__handle" aria-hidden="true"></div>
+          <div class="je-mnav-sheet__head">
+            <span class="je-mnav-sheet__title">You</span>
+            <button
+              type="button"
+              class="je-mnav-sheet__close"
+              aria-label="Close"
+              {{on "click" this.closeIdentity}}
+            >
+              {{icon "xmark"}}
+            </button>
+          </div>
+          <div class="je-mnav-sheet__body">
+            {{#if this.currentUser}}
+              <div class="je-mnav-identity__hero">
+                <a
+                  class="je-mnav-identity__avatar"
+                  href={{this.changePhotoHref}}
+                  {{on "click" (fn this.identityRowTap this.changePhotoHref)}}
+                >
+                  {{avatar this.currentUser imageSize="huge"}}
+                  <span class="je-mnav-identity__avatar-edit">
+                    {{icon "camera"}}
+                  </span>
+                </a>
+                <div class="je-mnav-identity__name">{{this.identityName}}</div>
+                <div class="je-mnav-identity__handle">
+                  @{{this.currentUser.username}}
+                </div>
+                <a
+                  class="je-mnav-identity__change"
+                  href={{this.changePhotoHref}}
+                  {{on "click" (fn this.identityRowTap this.changePhotoHref)}}
+                >
+                  {{icon "camera"}}
+                  Change photo
+                </a>
+              </div>
+              {{#if this.statChips.length}}
+                <div class="je-mnav-identity__chips">
+                  {{#each this.statChips key="key" as |chip|}}
+                    <span class="je-mnav-identity__chip">
+                      <b>{{chip.value}}</b>
+                      {{chip.label}}
+                    </span>
+                  {{/each}}
+                </div>
+              {{/if}}
+              <a
+                class="je-mnav-identity__primary"
+                href={{this.identityPrimaryResolved}}
+                {{on
+                  "click"
+                  (fn this.identityRowTap this.identityPrimaryResolved)
+                }}
+              >
+                {{this.identityPrimaryLabel}}
+              </a>
+              <div class="je-mnav-identity__grid">
+                {{#each this.identityRows key="key" as |row|}}
+                  <a
+                    class="je-mnav-identity__door"
+                    href={{row.resolvedHref}}
+                    {{on "click" (fn this.identityRowTap row.resolvedHref)}}
+                  >
+                    <span class="je-mnav-identity__door-icon">
+                      {{icon row.icon}}
+                    </span>
+                    <span class="je-mnav-identity__door-label">
+                      {{row.label}}
+                    </span>
+                  </a>
+                {{/each}}
+              </div>
+            {{/if}}
+          </div>
+        </div>
+
         {{! Bottom tab bar }}
         <nav
           class="je-mnav {{if this.barHidden 'is-hidden'}}"
@@ -424,7 +781,9 @@ export default class JeNavMobile extends Component {
               {{#if tab.resolvedHref}}
                 <a
                   href={{tab.resolvedHref}}
-                  class="je-mnav__tab {{if tab.isActive 'active'}}"
+                  class="je-mnav__tab
+                    {{if tab.isActive 'active'}}
+                    {{if tab.emphasis 'is-emphasis'}}"
                   aria-current={{if tab.isActive "page"}}
                   {{on "click" (fn this.tabTap tab)}}
                 >
@@ -443,12 +802,20 @@ export default class JeNavMobile extends Component {
                   type="button"
                   class="je-mnav__tab
                     {{if tab.isActive 'active'}}
-                    {{if tab.isOpen 'open'}}"
+                    {{if tab.isOpen 'open'}}
+                    {{if tab.emphasis 'is-emphasis'}}"
                   aria-expanded="{{tab.isOpen}}"
                   {{on "click" (fn this.tabTap tab)}}
                 >
-                  <span class="je-mnav__tab-icon" style={{tab.iconStyle}}>
-                    {{icon tab.icon}}
+                  <span
+                    class="je-mnav__tab-icon {{if tab.avatarUser 'is-avatar'}}"
+                    style={{tab.iconStyle}}
+                  >
+                    {{#if tab.avatarUser}}
+                      {{avatar tab.avatarUser imageSize="small"}}
+                    {{else}}
+                      {{icon tab.icon}}
+                    {{/if}}
                     {{#if tab.badge}}
                       <span class="je-mnav__tab-badge">{{tab.badge}}</span>
                     {{/if}}

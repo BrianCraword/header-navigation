@@ -198,3 +198,56 @@ svg_icons:
   type: list
   list_type: "compact"
   description: "Extra FontAwesome icons referenced by settings (brand icon, custom destinations). Add any icon you reference in je_nav_destinations here — per site, no rebuild."
+
+# ── v4: identity sheet ────────────────────────────────────────────────────────
+
+je_nav_mobile_avatar_tab:
+  description: "Show the member's avatar as the trailing tab on the mobile bottom bar (the FB grammar). Tapping it opens the identity sheet: photo + Change photo, stats, and the quick-links grid. The sheet also opens from the More sheet's profile row and from any surface dispatching the je-nav:identity:open event."
+  type: bool
+  default: true
+
+je_nav_identity_links:
+  description: "The quick-links grid on the identity sheet. label + icon + href (the /my/ alias resolves to the current user) + show_when visibility. Keep this the ONE place 'the profile places' live."
+  type: objects
+  default:
+    [
+      { "label": "My Profile", "icon": "user", "href": "/my/summary" },
+      { "label": "My Walk", "icon": "cross", "href": "/steering" },
+      { "label": "Bookmarks", "icon": "bookmark", "href": "/my/activity/bookmarks" },
+      { "label": "Messages", "icon": "envelope", "href": "/my/messages" },
+      { "label": "Badges", "icon": "medal", "href": "/badges" },
+      { "label": "Preferences", "icon": "gear", "href": "/my/preferences" },
+    ]
+  schema:
+    name: "identity_link"
+    identifier: label
+    properties:
+      label:
+        type: string
+        required: true
+      icon:
+        type: string
+      href:
+        type: string
+        required: true
+        validations:
+          url: true
+      order:
+        type: integer
+      show_when:
+        type: enum
+        default: all
+        choices:
+          - all
+          - members
+          - staff
+
+je_nav_identity_primary_label:
+  description: "Label on the identity sheet's primary button."
+  type: string
+  default: "Update your profile"
+
+je_nav_identity_primary_href:
+  description: "Destination of the identity sheet's primary button (the /my/ alias resolves)."
+  type: string
+  default: "/steering/profile"

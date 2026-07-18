@@ -1,12 +1,11 @@
 // je-nav-mobile.scss — the mobile bottom nav system.
 //
-// LIVES IN THE COMMON BUNDLE (imported from common/common.scss) because
-// Discourse 2026 media-gates the desktop/mobile theme bundles by viewport
-// WIDTH (width >= 40rem) while the component's JS decides by DEVICE
-// (site.mobileView). Putting rules in common and gating with the
-// .mobile-view class keeps CSS delivery and JS behavior in agreement —
-// the v2 mobile strip died precisely because its rules shipped inside the
-// width-gated desktop bundle and never reached a phone.
+// Lives in the common bundle so the rules always reach narrow viewports.
+// The 40rem media query matches capabilities.viewport.sm in the component.
+// Component rendering is gated reactively at the same breakpoint.
+// CSS delivery and JavaScript behavior therefore stay in agreement.
+// The v2 mobile strip failed because its rules shipped only in the desktop
+// bundle and never reached a phone.
 //
 // Z-INDEX LADDER (site-wide, keep coordinated):
 //   1000-ish  Discourse header
@@ -16,7 +15,7 @@
 //   10100     AI conversations side panels — always supreme on their route
 //             (the bar is suppressed there anyway; see suppression below)
 
-.mobile-view {
+@media (width < 40rem) {
   // Design tokens — Plaza palette with core fallbacks, same contract as
   // the desktop strip.
   .je-mnav-root {
@@ -384,13 +383,10 @@
   }
 }
 
-// ── Body coordination (classes owned by the initializer) ────────────────
-// IMPORTANT: `mobile-view` lives on <html>, these mode classes on <body> —
-// descendant selectors, never compound (the same trap documented on the
-// desktop Plaza-mode rule).
+// ── Body coordination (classes owned by JeNavMobile) ────────────────────
 
 // Content never hides under the bar.
-html.mobile-view body.je-nav-mobile-on {
+body.je-nav-mobile-on {
   #main-outlet-wrapper,
   #main-outlet {
     padding-bottom: calc(
@@ -401,7 +397,7 @@ html.mobile-view body.je-nav-mobile-on {
 
 // Immersive routes (docked AI composer, etc. — see
 // je_nav_mobile_suppress_classes): the whole system stands down.
-html.mobile-view body.je-nav-mobile-suppressed {
+body.je-nav-mobile-suppressed {
   .je-mnav,
   .je-mnav-scrim,
   .je-mnav-sheet {
@@ -410,6 +406,234 @@ html.mobile-view body.je-nav-mobile-suppressed {
 }
 
 // Scroll lock while the sheet is open.
-html.mobile-view body.je-nav-sheet-open {
+body.je-nav-sheet-open {
   overflow: hidden;
+}
+
+// ═══ v4.0.0 — The Identity Sheet, the avatar tab, the emphasis tab ═══
+// The mobile hero, summoned instead of squatting: everything the old
+// full-height welcome card carried now lives one tap away behind the
+// avatar. The emphasis tab is the "Word at the center" treatment — a
+// raised accent circle in the middle of the bar.
+
+// ── Avatar tab ──
+.je-mnav__tab-icon.is-avatar {
+  img.avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: block;
+  }
+}
+
+.je-mnav__tab.open .je-mnav__tab-icon.is-avatar img.avatar {
+  box-shadow: 0 0 0 2px var(--tertiary);
+}
+
+// ── Emphasis (center "Word") tab ──
+.je-mnav__tab.is-emphasis {
+  .je-mnav__tab-icon {
+    width: 44px;
+    height: 44px;
+    margin-top: -14px;
+    border-radius: 50%;
+    background: var(--tertiary);
+    color: var(--secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+
+    .d-icon {
+      font-size: 1.25em;
+      color: var(--secondary);
+    }
+  }
+
+  &.active .je-mnav__tab-icon,
+  &.open .je-mnav__tab-icon {
+    background: var(--tertiary-hover, var(--tertiary));
+    box-shadow:
+      0 3px 10px rgba(0, 0, 0, 0.18),
+      0 0 0 3px var(--tertiary-very-low, transparent);
+  }
+}
+
+// ── More-sheet profile row ──
+.je-mnav-identity-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  width: 100%;
+  padding: 0.65em 0.75em;
+  margin-bottom: 0.5em;
+  background: var(--primary-very-low);
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+
+  img.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  .d-icon {
+    margin-left: auto;
+    color: var(--primary-medium);
+  }
+}
+
+.je-mnav-identity-row__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.je-mnav-identity-row__name {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.je-mnav-identity-row__sub {
+  font-size: var(--font-down-1);
+  color: var(--primary-medium);
+}
+
+// ── The identity sheet ──
+.je-mnav-identity {
+  .je-mnav-sheet__body {
+    text-align: center;
+  }
+}
+
+.je-mnav-identity__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2em;
+  padding-top: 0.25em;
+}
+
+.je-mnav-identity__avatar {
+  position: relative;
+  display: inline-block;
+
+  img.avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--secondary), 0 0 0 5px var(--tertiary-low);
+  }
+}
+
+.je-mnav-identity__avatar-edit {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tertiary);
+  color: var(--secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+
+  .d-icon {
+    font-size: 0.8em;
+  }
+}
+
+.je-mnav-identity__name {
+  margin-top: 0.45em;
+  font-size: var(--font-up-2);
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.je-mnav-identity__handle {
+  color: var(--primary-medium);
+  font-size: var(--font-down-1);
+}
+
+.je-mnav-identity__change {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin-top: 0.4em;
+  padding: 0.3em 0.8em;
+  border-radius: 999px;
+  background: var(--tertiary-very-low, var(--primary-very-low));
+  color: var(--tertiary);
+  font-size: var(--font-down-1);
+  font-weight: 600;
+}
+
+.je-mnav-identity__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+  margin: 0.8em 0 0.2em;
+}
+
+.je-mnav-identity__chip {
+  padding: 0.3em 0.7em;
+  border-radius: 999px;
+  background: var(--primary-very-low);
+  color: var(--primary-high);
+  font-size: var(--font-down-1);
+
+  b {
+    color: var(--tertiary);
+  }
+}
+
+.je-mnav-identity__primary {
+  display: block;
+  margin: 0.8em 0.25em 0.9em;
+  padding: 0.7em 1em;
+  border-radius: 999px;
+  background: var(--tertiary);
+  color: var(--secondary);
+  font-weight: 700;
+  text-align: center;
+}
+
+.je-mnav-identity__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55em;
+  padding-bottom: 0.5em;
+}
+
+.je-mnav-identity__door {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.7em 0.3em;
+  border-radius: 14px;
+  background: var(--primary-very-low);
+  color: var(--primary-high);
+
+  &:active {
+    background: var(--primary-low);
+  }
+}
+
+.je-mnav-identity__door-icon {
+  color: var(--tertiary);
+
+  .d-icon {
+    font-size: 1.25em;
+  }
+}
+
+.je-mnav-identity__door-label {
+  font-size: var(--font-down-2);
+  font-weight: 600;
 }

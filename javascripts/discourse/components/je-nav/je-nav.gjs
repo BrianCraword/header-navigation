@@ -38,6 +38,7 @@ const SIDEBAR_PREF_KEY = "je_nav_sidebar_hidden";
 export default class JeNav extends Component {
   @service router;
   @service currentUser;
+  @service capabilities;
 
   @tracked openDropdown = null;
   @tracked currentURL = this.router.currentURL || "/";
@@ -51,10 +52,20 @@ export default class JeNav extends Component {
 
   // Sidebar toggle: master switch + per-user remembered preference.
   sidebarMasterOn = settings.je_nav_hide_sidebar_in_plaza;
+  forumClasses = (settings.je_nav_forum_route_classes || "")
+    .split("|")
+    .map((className) => className.trim())
+    .filter(Boolean);
   @tracked sidebarHidden = this._readSidebarPref();
 
+  _desktopModeFrame = null;
+  _desktopMounted = false;
+
   get showStrip() {
-    return !!this.currentUser || this.showAnon;
+    return (
+      (!!this.currentUser || this.showAnon) &&
+      this.capabilities.viewport.sm
+    );
   }
 
   // The per-user pin control only appears when the admin master switch is
@@ -134,25 +145,83 @@ export default class JeNav extends Component {
 
   @action
   trackRoute() {
+    this._desktopMounted = true;
     this.currentURL = this.router.currentURL || "/";
     this.routeListener = () => {
       this.currentURL = this.router.currentURL || "/";
       this.openDropdown = null;
+      this._scheduleDesktopMode();
     };
     this.router.on("routeDidChange", this.routeListener);
     document.addEventListener("click", this.closeOnOutside);
+    document.addEventListener(
+      "je-nav:sidebar-pref-changed",
+      this.onSidebarPrefChanged
+    );
+    this._scheduleDesktopMode();
   }
 
   @action
   teardown() {
+    this._desktopMounted = false;
+    if (this._desktopModeFrame !== null) {
+      cancelAnimationFrame(this._desktopModeFrame);
+      this._desktopModeFrame = null;
+    }
     if (this.routeListener) {
       this.router.off("routeDidChange", this.routeListener);
     }
     document.removeEventListener("click", this.closeOnOutside);
+    document.removeEventListener(
+      "je-nav:sidebar-pref-changed",
+      this.onSidebarPrefChanged
+    );
+    document.body.classList.remove("je-plaza-mode");
+    // Restore the desktop grid only when teardown happens on a desktop
+    // viewport. Mobile Discourse does not own this class.
+    if (this.capabilities.viewport.sm) {
+      document.body.classList.add("has-sidebar-page");
+    }
   }
 
   closeOnOutside = () => {
     this.openDropdown = null;
+  };
+
+  _isForumRoute() {
+    const name = this.router.currentRouteName || "";
+    if (name.startsWith("topic.")) {
+      return true;
+    }
+    return this.forumClasses.some((className) =>
+      document.body.classList.contains(className)
+    );
+  }
+
+  _applyDesktopMode() {
+    if (!this._desktopMounted) {
+      return;
+    }
+    const plaza =
+      this.sidebarMasterOn && this.sidebarHidden && !this._isForumRoute();
+    document.body.classList.toggle("je-plaza-mode", plaza);
+    // Toggle Discourse's sidebar-page class so the content grid reclaims
+    // the column. This method only runs while the desktop root is mounted.
+    document.body.classList.toggle("has-sidebar-page", !plaza);
+  }
+
+  _scheduleDesktopMode = () => {
+    if (!this._desktopMounted || this._desktopModeFrame !== null) {
+      return;
+    }
+    this._desktopModeFrame = requestAnimationFrame(() => {
+      this._desktopModeFrame = null;
+      this._applyDesktopMode();
+    });
+  };
+
+  onSidebarPrefChanged = () => {
+    this._scheduleDesktopMode();
   };
 
   @action

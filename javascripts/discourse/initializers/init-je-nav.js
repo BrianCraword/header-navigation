@@ -1,27 +1,14 @@
 import { apiInitializer } from "discourse/lib/api";
-import JeNav from "../components/je-nav/je-nav";
-import JeNavMobile from "../components/je-nav-mobile/je-nav-mobile";
+import JeNavResponsive from "../components/je-nav-responsive";
 
-const SIDEBAR_PREF_KEY = "je_nav_sidebar_hidden";
-
-// One navigation system, two render surfaces, one early viewport branch:
-//
-//   MOBILE  → the bottom tab bar + sheet (je-nav-mobile). The Plaza
-//             sidebar machinery NEVER runs here — v2 force-added
-//             has-sidebar-page to the mobile body on every page change,
-//             which is a class mobile Discourse never uses, and it
-//             distorted underlying page layout. The mobile branch owns
-//             only its own classes: je-nav-mobile-on (content padding)
-//             and je-nav-mobile-suppressed (immersive routes where the
-//             bar stands down, e.g. the docked AI composer).
-//   DESKTOP → the strip (je-nav) + Plaza sidebar mode, unchanged from v2
-//             but now unreachable on mobile by construction.
+// One navigation system, two reactive render surfaces. The initializer
+// deliberately makes no viewport decision: Discourse can change viewport
+// modes while the app is running, so each child component uses the tracked
+// capabilities service and owns the setup/cleanup for its active mode.
 //
 // TAKEOVER MODE (stub): je_nav_mode=takeover adds body.je-nav-takeover.
-// No CSS ships against it yet — it exists so the future "this component
-// owns ALL site navigation" flip is a stylesheet layer, not a refactor.
-// Boundary when that day comes: we take over destinations; Discourse
-// keeps search, notifications, and the user menu.
+// No CSS ships against it yet. It exists so a future sole-navigation mode is
+// a stylesheet layer, not a refactor.
 
 export default apiInitializer("1.8.0", (api) => {
   const user = api.getCurrentUser();
@@ -33,130 +20,5 @@ export default apiInitializer("1.8.0", (api) => {
     document.body.classList.add("je-nav-takeover");
   }
 
-  const site = api.container.lookup("service:site");
-  const mobile = !!site?.mobileView;
-
-  // ── MOBILE BRANCH ──────────────────────────────────────────────────
-  if (mobile) {
-    if (!settings.je_nav_show_mobile) {
-      return;
-    }
-
-    const suppressClasses = (settings.je_nav_mobile_suppress_classes || "")
-      .split("|")
-      .map((c) => c.trim())
-      .filter(Boolean);
-
-    // Suppress classes live on EITHER element: route classes land on
-    // <body> (ai-bot-conversations-page), while core puts composer-open
-    // on <html> (verified: models/composer.js adds it to
-    // document.documentElement; core SCSS keys html.composer-open).
-    function suppressActive() {
-      return suppressClasses.some(
-        (c) =>
-          document.body.classList.contains(c) ||
-          document.documentElement.classList.contains(c)
-      );
-    }
-
-    function applyMobileMode() {
-      const suppressed = suppressActive();
-      document.body.classList.toggle("je-nav-mobile-on", !suppressed);
-      document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
-    }
-
-    api.onPageChange(() => {
-      // Route-owned body classes (ai-bot-conversations-page etc.) land
-      // async around page change; a second pass catches late arrivals.
-      requestAnimationFrame(applyMobileMode);
-      setTimeout(applyMobileMode, 150);
-    });
-
-    // The composer is a STATE, not a route — opening it flips a class with
-    // no page-change event. Watch class mutations on both elements so any
-    // suppress class takes effect the instant it appears. rAF-coalesced;
-    // no feedback loop: classList.toggle to an unchanged state does not
-    // mutate the attribute, so the observer settles after one pass.
-    let mutationScheduled = false;
-    const onClassMutation = () => {
-      if (mutationScheduled) {
-        return;
-      }
-      mutationScheduled = true;
-      requestAnimationFrame(() => {
-        mutationScheduled = false;
-        applyMobileMode();
-      });
-    };
-    const classObserver = new MutationObserver(onClassMutation);
-    classObserver.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    classObserver.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    api.renderInOutlet("above-main-container", JeNavMobile);
-    requestAnimationFrame(applyMobileMode);
-    return;
-  }
-
-  // ── DESKTOP BRANCH (v2 behavior, verbatim) ─────────────────────────
-  const masterOn = settings.je_nav_hide_sidebar_in_plaza;
-
-  const forumClasses = (settings.je_nav_forum_route_classes || "")
-    .split("|")
-    .map((c) => c.trim())
-    .filter(Boolean);
-
-  function userWantsHidden() {
-    try {
-      const stored = window.localStorage.getItem(SIDEBAR_PREF_KEY);
-      if (stored === "true") {
-        return true;
-      }
-      if (stored === "false") {
-        return false;
-      }
-    } catch (e) {
-      // ignore
-    }
-    return settings.je_nav_sidebar_default_hidden;
-  }
-
-  function isForumRoute() {
-    const router = api.container.lookup("service:router");
-    const name = router?.currentRouteName || "";
-    if (name.startsWith("topic.")) {
-      return true;
-    }
-    return forumClasses.some((c) => document.body.classList.contains(c));
-  }
-
-  function applyMode() {
-    const plaza = masterOn && userWantsHidden() && !isForumRoute();
-    document.body.classList.toggle("je-plaza-mode", plaza);
-    // Toggle Discourse's own sidebar-page class so the content grid
-    // reclaims the column. Desktop-only by construction — the mobile
-    // branch returned above and never touches this class.
-    if (plaza) {
-      document.body.classList.remove("has-sidebar-page");
-    } else {
-      document.body.classList.add("has-sidebar-page");
-    }
-  }
-
-  api.onPageChange(() => {
-    requestAnimationFrame(applyMode);
-  });
-
-  document.addEventListener("je-nav:sidebar-pref-changed", () => {
-    requestAnimationFrame(applyMode);
-  });
-
-  api.renderInOutlet("above-main-container", JeNav);
-
-  requestAnimationFrame(applyMode);
+  api.renderInOutlet("above-main-container", JeNavResponsive);
 });
