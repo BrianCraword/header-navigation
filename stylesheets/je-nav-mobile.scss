@@ -598,9 +598,18 @@ body.je-nav-sheet-open {
   padding: 0.7em 1em;
   border-radius: 999px;
   background: var(--tertiary);
-  color: #fff;
+  // v4.0.4: the nav renders inside #main-outlet, where ID-scoped anchor
+  // rules (canvas/core) outrank a single class — the label kept
+  // inheriting the link purple. End the cascade fight for good.
+  color: #fff !important;
   font-weight: 700;
   text-align: center;
+
+  &:visited,
+  &:hover,
+  &:active {
+    color: #fff !important;
+  }
 }
 
 .je-mnav-identity__grid {

@@ -1,10 +1,10 @@
 {
-  "name": "Header Mega Nav 4.0.3",
+  "name": "Header Mega Nav 4.0",
   "component": true,
   "license_url": null,
   "about_url": null,
   "authors": null,
-  "theme_version": null,
+  "theme_version": "4.0.4",
   "minimum_discourse_version": null,
   "maximum_discourse_version": null,
   "assets": {},
