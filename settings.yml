@@ -39,7 +39,7 @@ je_nav_destinations:
             { "label": "All categories", "icon": "table-cells-large", "href": "/categories", "subtext": "Enter the full forum" },
           ],
       },
-      { "label": "Matches", "icon": "heart", "href": "/matchmaking/matches", "type": "link", "color": "#e24b4a" },
+      { "label": "Matchmaking", "icon": "heart", "href": "/matchmaking", "type": "link", "color": "#e24b4a" },
       { "label": "Messages", "icon": "envelope", "href": "/my/messages", "type": "link", "color": "#1d9e75" },
       { "label": "Talk to Logos", "icon": "wand-magic-sparkles", "href": "/discourse-ai/ai-bot/conversations", "type": "link", "color": "#b07cdb" },
     ]
@@ -212,7 +212,7 @@ je_nav_identity_links:
   default:
     [
       { "label": "My Profile", "icon": "user", "href": "/my/summary" },
-      { "label": "My Walk", "icon": "cross", "href": "/steering" },
+      { "label": "Matchmaking", "icon": "heart", "href": "/matchmaking" },
       { "label": "Bookmarks", "icon": "bookmark", "href": "/my/activity/bookmarks" },
       { "label": "Messages", "icon": "envelope", "href": "/my/messages" },
       { "label": "Badges", "icon": "medal", "href": "/badges" },
@@ -250,4 +250,4 @@ je_nav_identity_primary_label:
 je_nav_identity_primary_href:
   description: "Destination of the identity sheet's primary button (the /my/ alias resolves)."
   type: string
-  default: "/steering/profile"
+  default: "/matchmaking"

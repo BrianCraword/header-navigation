@@ -71,7 +71,7 @@ export default class JeNavMobile extends Component {
   identityPrimaryLabel =
     settings.je_nav_identity_primary_label || "Update your profile";
   identityPrimaryHref =
-    settings.je_nav_identity_primary_href || "/steering/profile";
+    settings.je_nav_identity_primary_href || "/matchmaking";
   showAnon = settings.je_nav_show_anon;
   showMobile = settings.je_nav_show_mobile;
   suppressClasses = (settings.je_nav_mobile_suppress_classes || "")
