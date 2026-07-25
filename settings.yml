@@ -76,7 +76,46 @@ je_nav_destinations:
           - all
           - members
           - staff
+      visible_groups:
+        type: string
+      surface:
+        type: enum
+        default: both
+        choices:
+          - both
+          - desktop
+          - mobile
+      href_source:
+        type: enum
+        default: none
+        choices:
+          - none
+          - matchmaking_journey
+      badge_source:
+        type: enum
+        default: static
+        choices:
+          - static
+          - matchmaking_new_matches
+          - matchmaking_introductions
+          - matchmaking_incomplete
+          - messages_unread
+          - notifications_unread
+      panel_title:
+        type: string
+      panel_subtext:
+        type: string
+      sheet_layout:
+        type: enum
+        default: list
+        choices:
+          - list
+          - grid
+          - cards
       mobile_pinned:
+        type: boolean
+        default: false
+      emphasis:
         type: boolean
         default: false
       children:
@@ -110,6 +149,31 @@ je_nav_destinations:
                 - all
                 - members
                 - staff
+            visible_groups:
+              type: string
+            surface:
+              type: enum
+              default: both
+              choices:
+                - both
+                - desktop
+                - mobile
+            href_source:
+              type: enum
+              default: none
+              choices:
+                - none
+                - matchmaking_journey
+            badge_source:
+              type: enum
+              default: static
+              choices:
+                - static
+                - matchmaking_new_matches
+                - matchmaking_introductions
+                - matchmaking_incomplete
+                - messages_unread
+                - notifications_unread
 
 je_nav_show_anon:
   description: "Show the navigation strip to anonymous (logged-out) visitors. Items marked show_when 'members' or 'staff' stay hidden for them. OFF preserves the original members-only behavior."
@@ -251,3 +315,36 @@ je_nav_identity_primary_href:
   description: "Destination of the identity sheet's primary button (the /my/ alias resolves)."
   type: string
   default: "/matchmaking"
+
+# ── v4.1: core-chrome suppression + centered emphasis ────────────────────
+#
+# ONE navigation system, not two. Once a destination lives on the strip or
+# the bottom bar, the equivalent core control is duplication — and on
+# phones it is the thing that makes the header look bolted on. These two
+# settings retire core controls PER SURFACE, and they do it by adding body
+# classes the stylesheet acts on: nothing is removed from the DOM, no core
+# behavior is patched, and disabling this component restores every control
+# instantly (ADR-F1).
+#
+# Recognized tokens: hamburger · search · chat · ai-bot · avatar
+#
+# CAUTION on `avatar`: the avatar is also the notifications panel. Suppress
+# it only where something else carries notifications — the mobile identity
+# tab does NOT (it opens the identity sheet, not the notification list).
+
+je_nav_suppress_core_desktop:
+  description: "Core header controls to hide on DESKTOP, once this component's strip covers them. Tokens: hamburger|search|chat|ai-bot|avatar. Blank hides nothing. Hiding is CSS-only — disable the component and everything returns."
+  type: list
+  list_type: compact
+  default: ""
+
+je_nav_suppress_core_mobile:
+  description: "Core header controls to hide on MOBILE, once the bottom bar covers them. Tokens: hamburger|search|chat|ai-bot|avatar. The hamburger is the usual one: its sidebar contents belong in the Discussions and More sheets. Do NOT hide 'avatar' unless something else carries notifications."
+  type: list
+  list_type: compact
+  default: ""
+
+je_nav_mobile_center_emphasis:
+  description: "Place the emphasized destination in the VISUAL CENTER of the bottom bar, with the remaining tabs distributed around it (the raised-center-button grammar). OFF renders it in list order, so its position depends on how many tabs you happen to have pinned."
+  type: bool
+  default: true

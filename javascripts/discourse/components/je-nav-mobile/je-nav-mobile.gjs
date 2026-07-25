@@ -14,7 +14,10 @@ import icon from "discourse-common/helpers/d-icon";
 import {
   itemVisible,
   orderedItems,
+  resolveBadge,
+  resolveDynamicHref,
   resolveHref,
+  rowVisible,
   sectionize,
   urlMatches,
 } from "../../lib/je-nav-core";
@@ -67,6 +70,7 @@ export default class JeNavMobile extends Component {
   moreLabel = settings.je_nav_mobile_more_label || "More";
   moreIcon = settings.je_nav_mobile_more_icon || "ellipsis";
   avatarTab = settings.je_nav_mobile_avatar_tab;
+  centerEmphasis = settings.je_nav_mobile_center_emphasis;
   identityLinks = settings.je_nav_identity_links || [];
   identityPrimaryLabel =
     settings.je_nav_identity_primary_label || "Update your profile";
@@ -100,25 +104,33 @@ export default class JeNavMobile extends Component {
     const current = this.currentURL;
     const isDropdown = dest.type === "dropdown";
     const children = orderedItems(dest.children || [])
-      .filter((child) => itemVisible(child, this.currentUser))
+      .filter((child) => rowVisible(child, this.currentUser, "mobile"))
       .map((child) => {
-        const href = resolveHref(child.href, this.currentUser);
+        const href = resolveDynamicHref(child, this.currentUser);
         return {
           ...child,
           resolvedHref: href,
+          badge: resolveBadge(child, this.currentUser),
           isActive: urlMatches(href, current),
         };
       });
-    const resolvedHref = resolveHref(dest.href, this.currentUser);
+    const resolvedHref = resolveDynamicHref(dest, this.currentUser);
     const isActive = isDropdown
       ? children.some((c) => c.isActive)
       : urlMatches(resolvedHref, current);
-    return { ...dest, isDropdown, children, resolvedHref, isActive };
+    return {
+      ...dest,
+      isDropdown,
+      children,
+      resolvedHref,
+      isActive,
+      badge: resolveBadge(dest, this.currentUser),
+    };
   }
 
   get _visibleDestinations() {
     return orderedItems(this.destinations)
-      .filter((dest) => itemVisible(dest, this.currentUser))
+      .filter((dest) => rowVisible(dest, this.currentUser, "mobile"))
       .map((dest) => this._decorate(dest))
       .filter((dest) => !dest.isDropdown || dest.children.length > 0);
   }
@@ -138,7 +150,7 @@ export default class JeNavMobile extends Component {
   // The tab row: pinned destinations plus the trailing More tab when
   // anything remains unpinned. Every property the template reads is
   // precomputed here — strict-mode discipline.
-  get tabs() {
+  get _orderedTabs() {
     const { pinned, rest } = this._split;
     const tabs = pinned.map((dest) => ({
       key: dest.label,
@@ -189,6 +201,36 @@ export default class JeNavMobile extends Component {
       });
     }
     return tabs;
+  }
+
+  // ── The raised tab, actually centered (v4.1) ──────────────────────────
+  //
+  // The bar renders [...pinned, More, You], so an emphasized destination
+  // only LOOKS centered at one particular pinned count — pin or unpin
+  // anything and the pillar drifts off-center silently. This moves the
+  // emphasized tab to the true middle index and lets the others close
+  // around it, so the layout survives a lineup change.
+  //
+  // Exactly one emphasized tab is honored (the first). Zero or several,
+  // or the setting off, and the bar renders in plain list order — a
+  // "center" is only meaningful when one thing owns it.
+  get tabs() {
+    const tabs = this._orderedTabs;
+    if (!this.centerEmphasis || tabs.length < 3) {
+      return tabs;
+    }
+    const index = tabs.findIndex((tab) => tab.emphasis === true);
+    if (index === -1) {
+      return tabs;
+    }
+    const middle = Math.floor(tabs.length / 2);
+    if (index === middle) {
+      return tabs;
+    }
+    const reordered = tabs.slice();
+    const [raised] = reordered.splice(index, 1);
+    reordered.splice(middle, 0, raised);
+    return reordered;
   }
 
   // ── Sheet model ───────────────────────────────────────────────────────
@@ -267,6 +309,38 @@ export default class JeNavMobile extends Component {
     return this.sheetKey || "";
   }
 
+  // The open sheet's own destination (null for the More sheet, which
+  // belongs to no single destination).
+  get _sheetDest() {
+    if (!this.sheetOpen || this.sheetKey === "__more__") {
+      return null;
+    }
+    return this._visibleDestinations.find(
+      (candidate) => candidate.label === this.sheetKey
+    );
+  }
+
+  // list · grid · cards. The sheet is full-height and has been spending
+  // it on two rows; the layout class is what lets a destination claim
+  // that space as tiles or cards instead.
+  get sheetLayoutClass() {
+    const layout = (this._sheetDest?.sheet_layout || "list")
+      .toString()
+      .trim()
+      .toLowerCase();
+    return `je-mnav-sheet--${
+      ["list", "grid", "cards"].includes(layout) ? layout : "list"
+    }`;
+  }
+
+  get sheetHeader() {
+    const dest = this._sheetDest;
+    if (!dest || (!dest.panel_title && !dest.panel_subtext)) {
+      return null;
+    }
+    return { title: dest.panel_title, subtext: dest.panel_subtext };
+  }
+
   // Groups of rows. Contextual sheet (a pinned dropdown): that dropdown's
   // sections. Full sheet: every unpinned destination — bare links gather
   // into an untitled leading group; each dropdown contributes one group
@@ -302,9 +376,7 @@ export default class JeNavMobile extends Component {
     });
 
     if (this.sheetKey !== "__more__") {
-      const dest = this._visibleDestinations.find(
-        (candidate) => candidate.label === this.sheetKey
-      );
+      const dest = this._sheetDest;
       if (!dest) {
         return [];
       }
@@ -613,7 +685,9 @@ export default class JeNavMobile extends Component {
 
         {{! Bottom sheet }}
         <div
-          class="je-mnav-sheet {{if this.sheetOpen 'is-open'}}"
+          class="je-mnav-sheet
+            {{this.sheetLayoutClass}}
+            {{if this.sheetOpen 'is-open'}}"
           role="dialog"
           aria-modal="true"
           aria-label={{this.sheetTitle}}
@@ -632,6 +706,20 @@ export default class JeNavMobile extends Component {
             </button>
           </div>
           <div class="je-mnav-sheet__body">
+            {{#if this.sheetHeader}}
+              <div class="je-mnav-sheet__panel-header">
+                {{#if this.sheetHeader.title}}
+                  <div class="je-mnav-sheet__panel-title">
+                    {{this.sheetHeader.title}}
+                  </div>
+                {{/if}}
+                {{#if this.sheetHeader.subtext}}
+                  <div class="je-mnav-sheet__panel-subtext">
+                    {{this.sheetHeader.subtext}}
+                  </div>
+                {{/if}}
+              </div>
+            {{/if}}
             {{#if this.moreProfileVisible}}
               <button
                 type="button"
@@ -655,31 +743,41 @@ export default class JeNavMobile extends Component {
                 {{#if group.hasTitle}}
                   <div class="je-mnav-sheet__group-title">{{group.title}}</div>
                 {{/if}}
-                {{#each group.rows key="key" as |row|}}
-                  <a
-                    href={{row.resolvedHref}}
-                    class="je-mnav-sheet__row {{if row.isActive 'active'}}"
-                    {{on "click" (fn this.rowTap row)}}
-                  >
-                    {{#if row.icon}}
-                      <span class="je-mnav-sheet__row-icon" style={{row.iconStyle}}>
-                        {{icon row.icon}}
-                      </span>
-                    {{/if}}
-                    <span class="je-mnav-sheet__row-text">
-                      <span class="je-mnav-sheet__row-label">
-                        {{row.label}}
-                        {{#if row.badge}}
-                          <span class="je-mnav__badge">{{row.badge}}</span>
+                {{! A rows wrapper so `grid` has something to lay out.
+                    In list and cards layouts it is a plain block and
+                    changes nothing. }}
+                <div class="je-mnav-sheet__group-rows">
+                  {{#each group.rows key="key" as |row|}}
+                    <a
+                      href={{row.resolvedHref}}
+                      class="je-mnav-sheet__row {{if row.isActive 'active'}}"
+                      {{on "click" (fn this.rowTap row)}}
+                    >
+                      {{#if row.icon}}
+                        <span
+                          class="je-mnav-sheet__row-icon"
+                          style={{row.iconStyle}}
+                        >
+                          {{icon row.icon}}
+                        </span>
+                      {{/if}}
+                      <span class="je-mnav-sheet__row-text">
+                        <span class="je-mnav-sheet__row-label">
+                          {{row.label}}
+                          {{#if row.badge}}
+                            <span class="je-mnav__badge">{{row.badge}}</span>
+                          {{/if}}
+                        </span>
+                        {{#if row.subtext}}
+                          <span
+                            class="je-mnav-sheet__row-subtext"
+                          >{{row.subtext}}</span>
                         {{/if}}
                       </span>
-                      {{#if row.subtext}}
-                        <span class="je-mnav-sheet__row-subtext">{{row.subtext}}</span>
-                      {{/if}}
-                    </span>
-                    {{icon "angle-right" class="je-mnav-sheet__row-caret"}}
-                  </a>
-                {{/each}}
+                      {{icon "angle-right" class="je-mnav-sheet__row-caret"}}
+                    </a>
+                  {{/each}}
+                </div>
               </div>
             {{/each}}
           </div>

@@ -1,41 +1,65 @@
 en:
   theme_metadata:
-    description: "Per-site, admin-managed navigation system: desktop strip with mega-menu dropdowns, and a mobile bottom tab bar with an overflow sheet. One destination schema drives both. The whole menu lives in theme settings."
+    description: "Per-site, admin-managed navigation system: desktop strip with mega-menu dropdowns, and a mobile bottom tab bar with contextual, overflow, and identity sheets. One destination schema drives both surfaces."
     settings:
       je_nav_destinations:
-        description: "The primary navigation. Rows appear in 'order' (blank orders keep list position). type 'link' goes to href; 'dropdown' opens children — give children a 'section' label for mega-menu columns."
+        description: "The primary navigation. Rows appear in 'order' (blank orders keep list position). type 'link' goes to href; 'dropdown' opens children — give children a 'section' label for mega-menu columns. Use 'Surface' to send a row to desktop only, mobile only, or both."
         schema:
           properties:
             label:
               label: "Label"
-              description: "Text shown on the strip."
+              description: "Text shown on the strip and on the mobile tab."
             icon:
               label: "Icon"
               description: "FontAwesome icon name (add new icons to the svg_icons setting)."
             type:
               label: "Type"
-              description: "link = direct destination · dropdown = opens child panel."
+              description: "link = direct destination · dropdown = opens a child panel (desktop) or a sheet (mobile)."
             href:
               label: "Link (href)"
-              description: "Destination path. /my/… resolves to the current user."
+              description: "Destination path. /my/… resolves to the current user. Ignored when 'Link source' is set to anything other than none."
             color:
               label: "Icon color"
               description: "CSS color for the icon when not active (blank = neutral)."
             badge:
               label: "Badge"
-              description: "Optional accent chip, e.g. NEW or LIVE."
+              description: "Static accent chip, e.g. NEW or LIVE. Also the fallback when 'Badge source' finds no live number."
             order:
               label: "Order"
-              description: "Position on the strip, ascending. Blank items keep their list position after ordered ones."
+              description: "Position, ascending. Blank items keep their list position after ordered ones."
             show_when:
               label: "Visible to"
               description: "all · members (logged-in) · staff."
+            visible_groups:
+              label: "Visible to groups"
+              description: "Narrow this row to members of specific groups. Pipe-separated group NAMES, e.g. mm_participants|mm_onboarding. Blank = no group restriction. Composes with 'Visible to' — both must pass. Staff do NOT bypass this, so funnel stages stay inspectable."
+            surface:
+              label: "Surface"
+              description: "Where this row renders. both (default) · desktop (strip only) · mobile (bottom bar and sheets only). This is how the two surfaces are configured differently without keeping two lists in sync."
+            href_source:
+              label: "Link source"
+              description: "none = use the Link above. matchmaking_journey = ask the matchmaking plugin where this member should go next, so an unconfirmed member reaches the Journey and a confirmed member reaches the hub. Falls back to Link when the plugin is absent."
+            badge_source:
+              label: "Badge source"
+              description: "static = show the Badge above. The others render a live number and show nothing at zero: new matches, pending introductions, an incomplete-profile percentage, unread messages, or unread notifications."
+            panel_title:
+              label: "Panel heading"
+              description: "Optional heading at the top of this dropdown's panel (desktop) and sheet (mobile). Turns a list of links into a mega menu with something to say."
+            panel_subtext:
+              label: "Panel subheading"
+              description: "Optional second line under the panel heading."
+            sheet_layout:
+              label: "Mobile sheet layout"
+              description: "How this dropdown's children render in its mobile sheet. list = rows (default) · grid = tappable tiles · cards = roomy cards with subtext."
             mobile_pinned:
               label: "Pin to mobile bar"
-              description: "Show as a tab on the mobile bottom bar. Unpinned destinations live behind the More sheet. If nothing is pinned, the first four destinations auto-pin."
+              description: "Show as a tab on the mobile bottom bar. Unpinned destinations live behind the More sheet. If nothing is pinned, the first four mobile-visible destinations auto-pin."
+            emphasis:
+              label: "Raised center tab"
+              description: "Render this pinned destination as the raised accent circle on the mobile bar — the one thing you most want thumbs to reach. Pair with 'Center the raised tab'. Use it on exactly one destination."
             children:
               label: "Dropdown children"
-              description: "Rows inside the dropdown panel."
+              description: "Rows inside the dropdown panel or sheet."
               schema:
                 properties:
                   label:
@@ -44,26 +68,66 @@ en:
                     label: "Icon"
                   href:
                     label: "Link (href)"
+                    description: "Destination path. /my/… resolves to the current user."
                   subtext:
                     label: "Subtext"
                     description: "Small second line under the label."
                   section:
                     label: "Section"
-                    description: "Children sharing a section render as one titled mega-menu column."
+                    description: "Children sharing a section render as one titled mega-menu column and one titled sheet group."
                   badge:
                     label: "Badge"
+                    description: "Static accent chip, and the fallback when 'Badge source' finds no live number."
                   order:
                     label: "Order"
                     description: "Position within the section, ascending."
                   show_when:
                     label: "Visible to"
+                    description: "all · members (logged-in) · staff."
+                  visible_groups:
+                    label: "Visible to groups"
+                    description: "Pipe-separated group NAMES. Blank = no group restriction."
+                  surface:
+                    label: "Surface"
+                    description: "both · desktop · mobile."
+                  href_source:
+                    label: "Link source"
+                    description: "none = use the Link above · matchmaking_journey = follow the plugin's own routing law."
+                  badge_source:
+                    label: "Badge source"
+                    description: "static, or a live count that hides itself at zero."
+      je_nav_identity_links:
+        description: "The quick-links grid on the mobile identity sheet. Keep this the ONE place the member's own destinations live, so the profile places aren't scattered across three menus."
+        schema:
+          properties:
+            label:
+              label: "Label"
+              description: "Text shown on the tile."
+            icon:
+              label: "Icon"
+              description: "FontAwesome icon name (add new icons to the svg_icons setting)."
+            href:
+              label: "Link (href)"
+              description: "Destination path. /my/… resolves to the current user."
+            order:
+              label: "Order"
+              description: "Position in the grid, ascending. Blank items keep their list position."
+            show_when:
+              label: "Visible to"
+              description: "all · members (logged-in) · staff."
+      je_nav_identity_primary_label: "Label on the identity sheet's primary button."
+      je_nav_identity_primary_href: "Where the identity sheet's primary button goes (the /my/… alias resolves)."
+      je_nav_mobile_avatar_tab: "Show the member's avatar as the trailing tab on the mobile bar. Tapping it opens the identity sheet."
       je_nav_show_anon: "Show the strip to logged-out visitors (members/staff items stay hidden for them)."
-      je_nav_show_mobile: "Render the mobile bottom nav (tab bar + More sheet) on phones."
+      je_nav_show_mobile: "Render the mobile bottom nav (tab bar + sheets) on phones."
       je_nav_mobile_show_labels: "Show text labels under the bottom-bar tab icons."
       je_nav_mobile_hide_on_scroll: "Hide the bar scrolling down, reveal it scrolling up."
       je_nav_mobile_more_label: "Label on the overflow tab."
       je_nav_mobile_more_icon: "Icon on the overflow tab."
       je_nav_mobile_suppress_classes: "Classes on html or body marking states where the bottom bar hides (immersive routes, open composer)."
+      je_nav_mobile_center_emphasis: "Place the raised tab in the visual center of the bottom bar. Off renders it in list order, so its position shifts whenever you pin or unpin something."
+      je_nav_suppress_core_desktop: "Core header controls to retire on DESKTOP once the strip covers them: hamburger|search|chat|ai-bot|avatar. CSS-only — disabling this component brings them all back."
+      je_nav_suppress_core_mobile: "Core header controls to retire on MOBILE once the bottom bar covers them: hamburger|search|chat|ai-bot|avatar. Don't hide 'avatar' unless something else carries notifications."
       je_nav_mode: "strip = alongside native chrome · takeover = reserved for a future sole-navigation mode."
       je_nav_show_brand: "Show the brand lockup (icon + name) at the left of the strip."
       je_nav_brand_label: "Text shown in the brand lockup — set per site."

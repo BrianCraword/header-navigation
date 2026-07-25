@@ -302,3 +302,65 @@
 // Discourse's native nav elements and make this component the sole
 // navigation. Deliberately unimplemented — the hook exists so the flip is
 // a CSS layer, not a refactor.
+
+
+// ── v4.1: core-chrome suppression (desktop) ──────────────────────────────
+//
+// Selectors VERIFIED against the live VC header (2026-07-25), not assumed:
+//   hamburger  .d-header .header-sidebar-toggle   (span, left of the logo)
+//   search     .d-header .search-dropdown
+//   chat       .d-header .chat-header-icon
+//   ai-bot     .d-header .ai-bot-button
+//   avatar     .d-header .header-dropdown-toggle.current-user
+//
+// The icon cluster is a <ul> of <li>, so hiding only the button leaves an
+// empty list item holding gap space. :has() removes the li itself; the
+// direct rule underneath covers any control not wrapped in one.
+//
+// The media query is the boundary — the initializer adds a static class
+// and CSS decides where it applies, so the suppression can never disagree
+// with which navigation is actually on screen.
+
+@media screen and (min-width: 640px) {
+  body.je-nav-hide-hamburger-desktop .d-header .header-sidebar-toggle,
+  body.je-nav-hide-search-desktop .d-header .search-dropdown,
+  body.je-nav-hide-chat-desktop .d-header .chat-header-icon,
+  body.je-nav-hide-ai-bot-desktop .d-header .ai-bot-button,
+  body.je-nav-hide-avatar-desktop
+    .d-header
+    .header-dropdown-toggle.current-user {
+    display: none !important;
+  }
+
+  body.je-nav-hide-search-desktop .d-header .icons li:has(.search-dropdown),
+  body.je-nav-hide-chat-desktop .d-header .icons li:has(.chat-header-icon),
+  body.je-nav-hide-ai-bot-desktop .d-header .icons li:has(.ai-bot-button) {
+    display: none !important;
+  }
+}
+
+// ── v4.1: mega-menu panel header ─────────────────────────────────────────
+//
+// A dropdown with a heading is a menu with something to say; without one
+// the panel renders exactly as it always has. Spans the full mega panel
+// so a multi-column layout reads as one surface, not columns with a hat.
+
+.je-nav__panel-header {
+  grid-column: 1 / -1;
+  padding: 0.15em 0.35em 0.7em;
+  margin-bottom: 0.35em;
+  border-bottom: 1px solid var(--primary-low);
+}
+
+.je-nav__panel-title {
+  font-weight: 700;
+  font-size: var(--font-0);
+  color: var(--primary);
+}
+
+.je-nav__panel-subtext {
+  margin-top: 0.15em;
+  font-size: var(--font-down-2);
+  color: var(--primary-medium);
+  line-height: 1.35;
+}

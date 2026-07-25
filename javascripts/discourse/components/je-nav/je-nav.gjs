@@ -10,9 +10,10 @@ import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
 import DiscourseURL from "discourse/lib/url";
 import icon from "discourse-common/helpers/d-icon";
 import {
-  itemVisible,
   orderedItems,
-  resolveHref,
+  resolveBadge,
+  resolveDynamicHref,
+  rowVisible,
   sectionize,
   urlMatches,
 } from "../../lib/je-nav-core";
@@ -99,16 +100,17 @@ export default class JeNav extends Component {
   get decoratedDestinations() {
     const current = this.currentURL;
     return orderedItems(this.destinations)
-      .filter((dest) => itemVisible(dest, this.currentUser))
+      .filter((dest) => rowVisible(dest, this.currentUser, "desktop"))
       .map((dest) => {
         const isDropdown = dest.type === "dropdown";
         const children = orderedItems(dest.children || [])
-          .filter((child) => itemVisible(child, this.currentUser))
+          .filter((child) => rowVisible(child, this.currentUser, "desktop"))
           .map((child) => {
-            const href = resolveHref(child.href, this.currentUser);
+            const href = resolveDynamicHref(child, this.currentUser);
             return {
               ...child,
               resolvedHref: href,
+              badge: resolveBadge(child, this.currentUser),
               isActive: urlMatches(href, current),
             };
           });
@@ -120,7 +122,7 @@ export default class JeNav extends Component {
         const isMega =
           sections.length > 1 || (sections.length === 1 && sections[0].hasTitle);
 
-        const resolvedHref = resolveHref(dest.href, this.currentUser);
+        const resolvedHref = resolveDynamicHref(dest, this.currentUser);
         const isActive = isDropdown
           ? children.some((c) => c.isActive)
           : urlMatches(resolvedHref, current);
@@ -137,6 +139,10 @@ export default class JeNav extends Component {
           isMega,
           isActive,
           iconStyle,
+          badge: resolveBadge(dest, this.currentUser),
+          // A panel with a heading is a mega menu with something to say;
+          // without one it stays the plain link list it has always been.
+          hasPanelHeader: !!(dest.panel_title || dest.panel_subtext),
           isOpen: this.openDropdown === dest.label,
         };
       })
@@ -328,6 +334,20 @@ export default class JeNav extends Component {
                       class="je-nav__dropdown {{if dest.isMega 'je-nav__dropdown--mega'}}"
                       {{on "click" this.stop}}
                     >
+                      {{#if dest.hasPanelHeader}}
+                        <div class="je-nav__panel-header">
+                          {{#if dest.panel_title}}
+                            <div class="je-nav__panel-title">
+                              {{dest.panel_title}}
+                            </div>
+                          {{/if}}
+                          {{#if dest.panel_subtext}}
+                            <div class="je-nav__panel-subtext">
+                              {{dest.panel_subtext}}
+                            </div>
+                          {{/if}}
+                        </div>
+                      {{/if}}
                       {{#each dest.sections as |section|}}
                         <div class="je-nav__section">
                           {{#if section.hasTitle}}
