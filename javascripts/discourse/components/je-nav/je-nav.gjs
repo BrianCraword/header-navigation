@@ -44,6 +44,21 @@ export default class JeNav extends Component {
   @tracked openDropdown = null;
   @tracked currentURL = this.router.currentURL || "/";
 
+  // v4.1.1 — hover intent. Dropdowns open on mouseenter and close on
+  // mouseleave (after a short grace period so the pointer can cross the
+  // gap into the panel). Only for pointers that can actually hover;
+  // touch keeps the click toggle, keyboard keeps Enter/Escape.
+  hoverEnabled =
+    settings.je_nav_desktop_open_on_hover &&
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(hover: hover) and (pointer: fine)").matches;
+  hoverCloseDelay = Number.isFinite(
+    Number(settings.je_nav_desktop_hover_close_delay)
+  )
+    ? Number(settings.je_nav_desktop_hover_close_delay)
+    : 160;
+  _hoverTimer = null;
+
   destinations = settings.je_nav_destinations || [];
   showBrand = settings.je_nav_show_brand;
   brandLabel = settings.je_nav_brand_label;
@@ -182,6 +197,7 @@ export default class JeNav extends Component {
       "je-nav:sidebar-pref-changed",
       this.onSidebarPrefChanged
     );
+    this._clearHoverTimer();
     document.body.classList.remove("je-plaza-mode");
     // Restore the desktop grid only when teardown happens on a desktop
     // viewport. Mobile Discourse does not own this class.
@@ -241,7 +257,48 @@ export default class JeNav extends Component {
   toggleDropdown(label, event) {
     event?.preventDefault();
     event?.stopPropagation();
+    // With hover active, a click on an already-open trigger keeps it
+    // open (the hover just opened it; a toggle would slam it shut).
+    if (this.hoverEnabled && this.openDropdown === label) {
+      return;
+    }
     this.openDropdown = this.openDropdown === label ? null : label;
+  }
+
+  @action
+  hoverOpen(label) {
+    if (!this.hoverEnabled) {
+      return;
+    }
+    this._clearHoverTimer();
+    this.openDropdown = label;
+  }
+
+  @action
+  hoverClose() {
+    if (!this.hoverEnabled) {
+      return;
+    }
+    this._clearHoverTimer();
+    this._hoverTimer = setTimeout(() => {
+      this._hoverTimer = null;
+      this.openDropdown = null;
+    }, this.hoverCloseDelay);
+  }
+
+  @action
+  onGroupKeydown(event) {
+    if (event.key === "Escape" && this.openDropdown) {
+      this.openDropdown = null;
+      event.currentTarget.querySelector(".je-nav__item")?.focus();
+    }
+  }
+
+  _clearHoverTimer() {
+    if (this._hoverTimer !== null) {
+      clearTimeout(this._hoverTimer);
+      this._hoverTimer = null;
+    }
   }
 
   @action
@@ -311,12 +368,19 @@ export default class JeNav extends Component {
           <div class="je-nav__items">
             {{#each this.decoratedDestinations as |dest|}}
               {{#if dest.isDropdown}}
-                <div class="je-nav__group">
+                <div
+                  class="je-nav__group {{if this.hoverEnabled 'is-hover'}}"
+                  {{on "mouseenter" (fn this.hoverOpen dest.label)}}
+                  {{on "mouseleave" this.hoverClose}}
+                  {{on "keydown" this.onGroupKeydown}}
+                >
                   <button
                     type="button"
                     class="je-nav__item
                       {{if dest.isActive 'active'}}
                       {{if dest.isOpen 'open'}}"
+                    aria-haspopup="true"
+                    aria-expanded={{if dest.isOpen "true" "false"}}
                     {{on "click" (fn this.toggleDropdown dest.label)}}
                   >
                     <span class="je-nav__icon" style={{dest.iconStyle}}>

@@ -175,6 +175,18 @@ je_nav_destinations:
                 - messages_unread
                 - notifications_unread
 
+je_nav_desktop_open_on_hover:
+  type: bool
+  default: true
+  description: "Desktop: open a dropdown when the pointer hovers its trigger and close it when the pointer leaves (mouse/trackpad only; touch and keyboard keep click/Enter and Escape). OFF restores click-to-toggle."
+
+je_nav_desktop_hover_close_delay:
+  type: integer
+  default: 160
+  min: 0
+  max: 1000
+  description: "Desktop hover: milliseconds the panel stays open after the pointer leaves, so diagonal travel into the panel does not close it."
+
 je_nav_show_anon:
   description: "Show the navigation strip to anonymous (logged-out) visitors. Items marked show_when 'members' or 'staff' stay hidden for them. OFF preserves the original members-only behavior."
   type: bool

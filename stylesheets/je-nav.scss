@@ -2,9 +2,11 @@
 // Falls back gracefully if the Plaza theme variables aren't present.
 
 .je-nav {
-  --je-accent: var(--plaza-accent, var(--tertiary));
-  --je-accent-light: var(--plaza-accent-light, var(--highlight));
-  --je-pop: var(--plaza-pop, var(--love));
+  // v4.1.1: the site brand layer (--vc-*, Canvas brand/tokens.scss) leads;
+  // Plaza vars and core scheme vars remain as fallbacks for other sites.
+  --je-accent: var(--vc-accent, var(--plaza-accent, var(--tertiary)));
+  --je-accent-light: var(--vc-accent-tint, var(--plaza-accent-light, var(--highlight)));
+  --je-pop: var(--vc-pop, var(--plaza-pop, var(--love)));
   --je-surface: var(--secondary);
   --je-border: var(--primary-200, rgba(0, 0, 0, 0.1));
   --je-text: var(--primary);
@@ -181,6 +183,17 @@
 .je-nav__dropdown {
   position: absolute;
   top: calc(100% + 6px);
+
+  // v4.1.1 hover bridge: the 6px gap above the panel is not a descendant
+  // of .je-nav__group, so crossing it fires mouseleave. Cover it.
+  .je-nav__group.is-hover &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    height: 8px;
+  }
   left: 0;
   z-index: 1000;
   min-width: 240px;
