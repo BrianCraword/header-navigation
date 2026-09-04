@@ -1,9 +1,10 @@
 import Component from "@glimmer/component";
-import { tracked } from "@glimmer/tracking";
+import { cached, tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
 import { service } from "@ember/service";
 import { on } from "@ember/modifier";
 import { fn } from "@ember/helper";
+import { eq } from "truth-helpers";
 import { htmlSafe } from "@ember/template";
 import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
@@ -107,11 +108,20 @@ export default class JeNav extends Component {
   }
 
   // Pre-compute all dynamic state into plain objects. The template only ever
-  // reads simple properties (resolvedHref, isActive, isOpen, sections) —
-  // never calls a method with arguments — the strict-mode-safe Glimmer
-  // pattern. Recomputes when currentURL or openDropdown change (tracked).
+  // reads simple properties (resolvedHref, isActive, sections) — never
+  // calls a method with arguments — the strict-mode-safe Glimmer pattern.
+  //
+  // v4.1.3: @cached, and it no longer reads openDropdown. Before, every
+  // hover/open invalidated this getter, it rebuilt every object, and the
+  // key-less {{#each}} blocks replaced every node under .je-nav__items —
+  // Chrome hit-tested a row, the row was destroyed mid-gesture, mousedown
+  // and mouseup landed on different node instances, and no click was ever
+  // synthesized. Open state is now resolved in the template with `eq`, so
+  // this model only recomputes when the route or user changes.
+  //
   // Stable order-aware sort: items with an `order` number sort ascending;
   // items without keep their list position, after ordered ones on ties.
+  @cached
   get decoratedDestinations() {
     const current = this.currentURL;
     return orderedItems(this.destinations)
@@ -158,7 +168,6 @@ export default class JeNav extends Component {
           // A panel with a heading is a mega menu with something to say;
           // without one it stays the plain link list it has always been.
           hasPanelHeader: !!(dest.panel_title || dest.panel_subtext),
-          isOpen: this.openDropdown === dest.label,
         };
       })
       .filter((dest) => !dest.isDropdown || dest.children.length > 0);
@@ -301,7 +310,9 @@ export default class JeNav extends Component {
       return;
     }
     this._clearHoverTimer();
-    this.openDropdown = label;
+    if (this.openDropdown !== label) {
+      this.openDropdown = label;
+    }
   }
 
   @action
@@ -393,7 +404,7 @@ export default class JeNav extends Component {
           {{/if}}
 
           <div class="je-nav__items">
-            {{#each this.decoratedDestinations as |dest|}}
+            {{#each this.decoratedDestinations key="label" as |dest|}}
               {{#if dest.isDropdown}}
                 <div
                   class="je-nav__group {{if this.hoverEnabled 'is-hover'}}"
@@ -405,9 +416,9 @@ export default class JeNav extends Component {
                     type="button"
                     class="je-nav__item
                       {{if dest.isActive 'active'}}
-                      {{if dest.isOpen 'open'}}"
+                      {{if (eq this.openDropdown dest.label) 'open'}}"
                     aria-haspopup="true"
-                    aria-expanded={{if dest.isOpen "true" "false"}}
+                    aria-expanded={{if (eq this.openDropdown dest.label) "true" "false"}}
                     {{on "click" (fn this.toggleDropdown dest.label)}}
                   >
                     <span class="je-nav__icon" style={{dest.iconStyle}}>
@@ -420,7 +431,7 @@ export default class JeNav extends Component {
                     {{icon "angle-down" class="je-nav__caret"}}
                   </button>
 
-                  {{#if dest.isOpen}}
+                  {{#if (eq this.openDropdown dest.label)}}
                     <div
                       class="je-nav__dropdown {{if dest.isMega 'je-nav__dropdown--mega'}}"
                       {{on "click" this.stop}}
@@ -439,12 +450,12 @@ export default class JeNav extends Component {
                           {{/if}}
                         </div>
                       {{/if}}
-                      {{#each dest.sections as |section|}}
+                      {{#each dest.sections key="@index" as |section|}}
                         <div class="je-nav__section">
                           {{#if section.hasTitle}}
                             <div class="je-nav__section-title">{{section.title}}</div>
                           {{/if}}
-                          {{#each section.children as |child|}}
+                          {{#each section.children key="label" as |child|}}
                             <a
                               href={{child.resolvedHref}}
                               class="je-nav__dropdown-row
