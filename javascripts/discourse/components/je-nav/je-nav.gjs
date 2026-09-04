@@ -246,11 +246,41 @@ export default class JeNav extends Component {
     this._scheduleDesktopMode();
   };
 
-  @action
-  navigate(dest, event) {
+  // v4.1.2 — one navigation path for strip items and dropdown rows.
+  //   • modifier / middle clicks are left to the browser (new tab works)
+  //   • routeTo runs BEFORE the dropdown closes, so the row is still in
+  //     the DOM when the transition starts
+  //   • if routeTo throws or refuses the href (external, unknown), fall
+  //     back to a plain location change instead of a dead click
+  _go(href, event) {
+    if (!href) {
+      return;
+    }
+    if (
+      event &&
+      (event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button === 1)
+    ) {
+      return; // browser handles it
+    }
     event?.preventDefault();
     event?.stopPropagation();
-    DiscourseURL.routeTo(dest.resolvedHref);
+    try {
+      DiscourseURL.routeTo(href);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[je-nav] routeTo failed, falling back", href, e);
+      window.location.assign(href);
+    }
+    this.openDropdown = null;
+  }
+
+  @action
+  navigate(dest, event) {
+    this._go(dest.resolvedHref, event);
   }
 
   @action
@@ -303,10 +333,7 @@ export default class JeNav extends Component {
 
   @action
   navigateChild(child, event) {
-    event?.preventDefault();
-    event?.stopPropagation();
-    this.openDropdown = null;
-    DiscourseURL.routeTo(child.resolvedHref);
+    this._go(child.resolvedHref, event);
   }
 
   @action
