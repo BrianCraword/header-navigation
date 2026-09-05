@@ -1,19 +1,34 @@
-// JE Desktop Nav — keyed to the Community Plaza palette.
-// Falls back gracefully if the Plaza theme variables aren't present.
+// ═══════════════════════════════════════════════════════════════════════
+// JE Header Mega Nav — brand pass v5.0.0 (direction "1a")
+//
+// Reads the site token layer (--vc-*, Canvas brand/tokens.scss); Plaza
+// vars and core scheme vars remain as fallbacks for other sites.
+//
+// The strip: white card on the cream page, r12, 36px items, r9. Each
+// item's glyph sits in a 24px tinted TILE whose hue is the admin-set
+// `color` (the component writes it as an inline `color:` on .je-nav__icon,
+// so currentColor is the hue). Active/open: tint fill + deep text + solid
+// tile. Panel: r16, header (title + subtext), 3 columns, 30px tile rows.
+// ═══════════════════════════════════════════════════════════════════════
 
 .je-nav {
-  // v4.1.1: the site brand layer (--vc-*, Canvas brand/tokens.scss) leads;
-  // Plaza vars and core scheme vars remain as fallbacks for other sites.
   --je-accent: var(--vc-accent, var(--plaza-accent, var(--tertiary)));
+  --je-accent-deep: var(--vc-accent-deep, var(--je-accent));
   --je-accent-light: var(--vc-accent-tint, var(--plaza-accent-light, var(--highlight)));
   --je-pop: var(--vc-pop, var(--plaza-pop, var(--love)));
-  --je-surface: var(--secondary);
-  --je-border: var(--primary-200, rgba(0, 0, 0, 0.1));
-  --je-text: var(--primary);
-  --je-text-soft: var(--primary-medium, var(--primary));
-  --je-radius: var(--d-border-radius, 8px);
-  --je-pill: var(--d-button-border-radius, 999px);
-  // Sticky offset = height of the Discourse header.
+  --je-surface: var(--vc-surface, var(--secondary));
+  --je-page: var(--vc-tint, var(--secondary));
+  --je-border: var(--vc-line, var(--primary-200, rgba(0, 0, 0, 0.1)));
+  --je-text: var(--vc-ink, var(--primary));
+  --je-text-soft: var(--vc-ink-2, var(--primary-medium, var(--primary)));
+  --je-muted: var(--vc-muted, var(--primary-medium));
+  --je-label: var(--vc-label, var(--primary-medium));
+  --je-ui: var(--vc-ui, var(--font-family));
+  --je-display: var(--vc-display, var(--font-family));
+  --je-radius: 12px;
+  --je-item-radius: 9px;
+  --je-tile: 24px;
+  --je-tile-radius: 7px;
   --je-header-offset: var(--header-offset, 53px);
 
   display: none; // desktop only, enabled below at the sm breakpoint
@@ -24,8 +39,6 @@
 @media (width >= 40rem) {
   .je-nav {
     display: block;
-    // Sticky band: tucks just below the native (already sticky) Discourse header
-    // and stays visible on scroll.
     position: sticky;
     top: var(--je-header-offset);
     z-index: 500;
@@ -35,25 +48,28 @@
 .je-nav__inner {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 5px;
   background: var(--je-surface);
   border: 1px solid var(--je-border);
   border-radius: var(--je-radius);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(28, 20, 23, 0.04);
 }
 
 .je-nav__brand {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 500;
-  font-size: var(--font-up-1);
+  font-family: var(--je-ui);
+  font-weight: 700;
+  font-size: var(--font-down-1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--je-text);
   text-decoration: none;
-  padding-right: 14px;
-  margin-right: 6px;
+  padding: 0 14px 0 8px;
+  margin-right: 4px;
   border-right: 1px solid var(--je-border);
 
   .d-icon {
@@ -61,9 +77,7 @@
     font-size: 1.1em;
   }
 
-  &:hover {
-    color: var(--je-text);
-  }
+  &:hover { color: var(--je-text); }
 }
 
 .je-nav__items {
@@ -72,162 +86,183 @@
   gap: 2px;
 }
 
-.je-nav__group {
-  position: relative;
-}
+.je-nav__group { position: relative; }
 
+// ── strip items ─────────────────────────────────────────────────────────
 .je-nav__item {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 9px;
+  height: 36px;
+  padding: 0 12px 0 6px;
   background: transparent;
   border: none;
-  border-radius: var(--je-pill);
-  padding: 7px 14px;
-  font-size: var(--font-0);
-  font-weight: normal;
+  border-radius: var(--je-item-radius);
+  font-family: var(--je-ui);
+  font-size: 13.5px;
+  font-weight: 500;
   line-height: 1;
   color: var(--je-text-soft);
   cursor: pointer;
   text-decoration: none;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition: background 0.16s ease, color 0.16s ease;
 
+  // the tile — hue arrives as inline `color:` from the admin setting
   .je-nav__icon {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: var(--je-tile);
+    height: var(--je-tile);
+    border-radius: var(--je-tile-radius);
+    color: var(--je-text-soft);
+    background: color-mix(in srgb, currentcolor 13%, transparent);
+    transition: background 0.16s ease, color 0.16s ease;
 
     .d-icon {
-      font-size: 1em;
+      width: 11px;
+      height: 11px;
+      color: inherit;
     }
   }
 
   .je-nav__caret {
-    font-size: 0.8em;
-    margin-left: -2px;
-    opacity: 0.7;
-    color: var(--je-text-soft);
+    font-size: 0.7em;
+    margin-left: -3px;
+    color: var(--je-label);
+    transition: transform 0.16s ease;
   }
 
   &:hover {
-    background: var(--je-accent-light);
+    background: var(--je-page);
     color: var(--je-text);
   }
 
+  // open: same fill as hover, caret flips
   &.open {
-    background: var(--je-accent-light);
+    background: var(--je-page);
     color: var(--je-text);
+    .je-nav__caret { transform: rotate(180deg); }
   }
 
-  // Active = you are here. The accent fill + accent icon override any custom
-  // per-icon color so the current location is unmistakable.
+  // active = you are here: accent tint, deep accent text, solid tile.
+  // (The component drops the inline color on the active item, so the
+  // tile colors below are not fighting an inline style.)
   &.active {
     background: var(--je-accent-light);
-    color: var(--je-accent);
-    font-weight: 500;
+    color: var(--je-accent-deep);
+    font-weight: 600;
 
-    .je-nav__icon .d-icon {
-      color: var(--je-accent) !important;
+    .je-nav__icon {
+      background: var(--je-accent);
+      color: #fff;
+      .d-icon { color: #fff !important; }
     }
   }
 }
 
-.je-nav__spacer {
-  flex: 1 1 auto;
-}
+.je-nav__spacer { flex: 1 1 auto; }
 
 .je-nav__sidebar-toggle {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
   background: transparent;
   border: none;
-  border-radius: var(--je-pill);
-  padding: 7px 10px;
+  border-radius: var(--je-item-radius);
   cursor: pointer;
-  color: var(--je-text-soft);
-  transition: background 0.12s ease, color 0.12s ease;
+  color: var(--je-label);
+  transition: background 0.16s ease, color 0.16s ease;
 
-  .d-icon {
-    font-size: 1.05em;
-  }
+  .d-icon { font-size: 1.05em; }
 
   &:hover {
-    background: var(--je-accent-light);
+    background: var(--je-page);
     color: var(--je-text);
   }
 
-  // When the sidebar is currently shown, the toggle reads as "active/pinned".
-  &.is-shown {
-    color: var(--je-accent);
-  }
+  &.is-shown { color: var(--je-accent); }
 }
 
 .je-nav__avatar {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 36px;
+  padding: 0 14px;
   background: var(--je-accent-light);
-  color: var(--je-accent);
+  color: var(--je-accent-deep);
   border: none;
-  border-radius: var(--je-pill);
-  padding: 7px 14px;
+  border-radius: var(--je-item-radius);
+  font-family: var(--je-ui);
   font-size: var(--font-down-1);
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 
-  &:hover {
-    filter: brightness(0.97);
-  }
+  &:hover { filter: brightness(0.97); }
 }
 
+// ── dropdown / mega panel ───────────────────────────────────────────────
 .je-nav__dropdown {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 1000;
+  min-width: 260px;
+  padding: 8px;
+  background: var(--je-surface);
+  border: 1px solid var(--je-border);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -24px rgba(42, 16, 32, 0.35), 0 2px 6px rgba(28, 20, 23, 0.05);
 
-  // v4.1.1 hover bridge: the 6px gap above the panel is not a descendant
-  // of .je-nav__group, so crossing it fires mouseleave. Cover it.
+  // hover bridge: the gap above the panel is not a descendant of the
+  // group, so crossing it fires mouseleave. Cover it.
   .je-nav__group.is-hover &::before {
     content: "";
     position: absolute;
     left: 0;
     right: 0;
-    top: -8px;
-    height: 8px;
+    top: -10px;
+    height: 10px;
   }
-  left: 0;
-  z-index: 1000;
-  min-width: 240px;
-  background: var(--secondary);
-  border: 1px solid var(--je-border);
-  border-radius: var(--je-radius);
-  padding: 6px;
-  box-shadow: var(--shadow-dropdown, 0 2px 8px rgba(0, 0, 0, 0.12));
 }
 
 .je-nav__dropdown-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: var(--je-radius);
+  align-items: flex-start;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: 10px;
   text-decoration: none;
   color: var(--je-text);
+  transition: background 0.16s ease;
 
-  .d-icon {
+  // row glyph: 30px tile, hue inherited from the parent destination
+  // (the panel sits inside .je-nav__group; the trigger's inline color is
+  // on its .je-nav__icon, not the group, so rows use the accent tint by
+  // default and the column title carries meaning).
+  > .d-icon {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--je-page);
     color: var(--je-text-soft);
-    font-size: 1em;
   }
 
-  &:hover {
-    background: var(--je-accent-light);
-  }
+  &:hover { background: var(--je-page); }
 
   &.active {
     background: var(--je-accent-light);
-    color: var(--je-accent);
+    color: var(--je-accent-deep);
 
-    .d-icon {
-      color: var(--je-accent);
+    > .d-icon {
+      background: var(--je-accent);
+      color: #fff;
     }
   }
 }
@@ -235,113 +270,106 @@
 .je-nav__dropdown-text {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .je-nav__dropdown-label {
-  font-size: var(--font-0);
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .je-nav__dropdown-subtext {
-  font-size: var(--font-down-1);
-  color: var(--je-text-soft);
+  font-size: 11.5px;
+  color: var(--je-label);
   line-height: 1.3;
 }
 
-// --- Plaza mode: demote the Discourse sidebar -------------------------------
-// To DEMOTE rather than fully hide later, swap `display: none` for a narrower
-// width / reduced opacity — no JS change needed.
-@media (width >= 40rem) {
-  body.je-plaza-mode {
-    .sidebar-wrapper {
-      display: none;
-    }
-  }
-}
-
-// ── v2: mega menu + badges ──────────────────────────────────────────────
-// A dropdown whose children carry `section` labels becomes a mega panel:
-// one titled column per section, side by side. Without sections the panel
-// is the classic single column — v1 markup and spacing unchanged.
-
+// mega: one titled column per section
 .je-nav__dropdown--mega {
   display: flex;
-  gap: 1.4em;
+  flex-wrap: wrap;
+  gap: 0 12px;
   min-width: max-content;
   max-width: min(760px, 90vw);
+  padding: 10px 12px 12px;
 
   .je-nav__section {
-    min-width: 200px;
+    min-width: 220px;
     flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
 }
 
 .je-nav__section-title {
-  font-size: var(--font-down-2);
-  font-weight: 700;
+  font-family: var(--je-ui);
+  font-size: 10px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--primary-medium);
-  padding: 0.35em 0.75em 0.25em;
-  border-bottom: 1px solid var(--primary-low);
-  margin-bottom: 0.3em;
+  letter-spacing: 0.18em;
+  color: var(--je-label);
+  padding: 6px 10px 8px;
+  border-bottom: 0;
+  margin-bottom: 0;
   white-space: nowrap;
 }
 
 .je-nav__badge {
   display: inline-block;
-  font-size: 0.62em;
-  font-weight: 800;
+  font-family: var(--je-ui);
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   line-height: 1;
-  padding: 0.3em 0.55em;
-  border-radius: 1em;
-  background: var(--tertiary);
-  color: var(--secondary);
-  margin-left: 0.45em;
+  padding: 3px 7px;
+  border-radius: 100px;
+  background: var(--je-accent);
+  color: #fff;
+  margin-left: 0.5em;
   vertical-align: middle;
 }
 
-// ── v3: viewport ownership ──────────────────────────────────────────────
-// The strip is desktop-only by construction: this file ships in the COMMON
-// bundle, the base rule above keeps .je-nav display:none, and the 40rem media
-// query reveals it. Mobile is owned entirely by je-nav-mobile.scss.
-//
-// TAKEOVER MODE (stub): when je_nav_mode=takeover the initializer adds
-// body.je-nav-takeover. Future work styles against that hook to suppress
-// Discourse's native nav elements and make this component the sole
-// navigation. Deliberately unimplemented — the hook exists so the flip is
-// a CSS layer, not a refactor.
+// panel header: title in the display face, subtext muted
+.je-nav__panel-header {
+  flex: 1 1 100%;
+  grid-column: 1 / -1;
+  margin: -10px -12px 10px;
+  padding: 16px 22px 14px;
+  border-bottom: 1px solid var(--je-border);
+}
 
+.je-nav__panel-title {
+  font-family: var(--je-display);
+  font-weight: var(--vc-display-weight, 600);
+  letter-spacing: var(--vc-display-tracking, -0.01em);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--je-text);
+}
 
-// ── v4.1: core-chrome suppression (desktop) ──────────────────────────────
-//
-// Selectors VERIFIED against the live VC header (2026-07-25), not assumed:
-//   hamburger  .d-header .header-sidebar-toggle   (span, left of the logo)
-//   search     .d-header .search-dropdown
-//   chat       .d-header .chat-header-icon
-//   ai-bot     .d-header .ai-bot-button
-//   avatar     .d-header .header-dropdown-toggle.current-user
-//
-// The icon cluster is a <ul> of <li>, so hiding only the button leaves an
-// empty list item holding gap space. :has() removes the li itself; the
-// direct rule underneath covers any control not wrapped in one.
-//
-// The media query is the boundary — the initializer adds a static class
-// and CSS decides where it applies, so the suppression can never disagree
-// with which navigation is actually on screen.
+.je-nav__panel-subtext {
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--je-muted);
+  line-height: 1.35;
+}
 
+// ── Plaza mode: demote the Discourse sidebar ─────────────────────────────
+@media (width >= 40rem) {
+  body.je-plaza-mode .sidebar-wrapper { display: none; }
+}
+
+// ── core-chrome suppression (desktop) — unchanged from v4.1 ─────────────
 @media screen and (min-width: 640px) {
   body.je-nav-hide-hamburger-desktop .d-header .header-sidebar-toggle,
   body.je-nav-hide-search-desktop .d-header .search-dropdown,
   body.je-nav-hide-chat-desktop .d-header .chat-header-icon,
   body.je-nav-hide-ai-bot-desktop .d-header .ai-bot-button,
-  body.je-nav-hide-avatar-desktop
-    .d-header
-    .header-dropdown-toggle.current-user {
+  body.je-nav-hide-avatar-desktop .d-header .header-dropdown-toggle.current-user {
     display: none !important;
   }
 
@@ -352,28 +380,30 @@
   }
 }
 
-// ── v4.1: mega-menu panel header ─────────────────────────────────────────
-//
-// A dropdown with a heading is a menu with something to say; without one
-// the panel renders exactly as it always has. Spans the full mega panel
-// so a multi-column layout reads as one surface, not columns with a hat.
+// ── the wine header strip (core .d-header) ───────────────────────────────
+// header_background / header_primary in about.json paint the bar; these
+// rules tune what the scheme cannot: translucent search, icon hover, the
+// gold notification dot, and a hairline-free bottom edge.
+.d-header {
+  box-shadow: none;
+  border-bottom: 0;
 
-.je-nav__panel-header {
-  grid-column: 1 / -1;
-  padding: 0.15em 0.35em 0.7em;
-  margin-bottom: 0.35em;
-  border-bottom: 1px solid var(--primary-low);
-}
+  .d-header-icons .icon {
+    border-radius: 8px;
+    color: color-mix(in srgb, var(--header_primary) 78%, transparent);
+    &:hover { background: rgba(255, 255, 255, 0.1); color: var(--header_primary); }
+  }
 
-.je-nav__panel-title {
-  font-weight: 700;
-  font-size: var(--font-0);
-  color: var(--primary);
-}
+  .d-header-icons .badge-notification {
+    background: var(--vc-gold-bright, #f0b23f);
+    color: var(--vc-hero-ink, #2a1020);
+    border: 2px solid var(--header_background);
+  }
 
-.je-nav__panel-subtext {
-  margin-top: 0.15em;
-  font-size: var(--font-down-2);
-  color: var(--primary-medium);
-  line-height: 1.35;
+  .search-dropdown .d-icon { color: color-mix(in srgb, var(--header_primary) 70%, transparent); }
+
+  .header-sidebar-toggle button {
+    color: color-mix(in srgb, var(--header_primary) 78%, transparent);
+    &:hover { background: rgba(255, 255, 255, 0.1); color: var(--header_primary); }
+  }
 }
