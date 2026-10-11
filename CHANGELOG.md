@@ -1,6 +1,62 @@
 # Header Mega Nav — Changelog
 
 ---
+[5.1.2] - 2026-10-11
+
+The first release of the 5.1 line on GitHub (5.1.0 and 5.1.1 were candidates
+that were never installed). Upgrading from 5.0.0 changes nothing members see
+until `je_nav_focus_companion_enabled` is turned on.
+
+- **New: the focused Feed companion** (5.1.0, with the 5.1.1 surface-gate fix).
+  Four new settings, all default off or neutral: `je_nav_focus_companion_enabled`,
+  `je_nav_focus_ai_href`, `je_nav_focus_home_href`,
+  `je_nav_focus_keep_explore_on_scroll`. No setting renamed or removed.
+- **Fixed: the companion's labels.** 5.1.1 looked them up without
+  `themePrefix()`, so they would have shown as "[en.je_nav.focus.home]".
+  New test `test/i18n-keys.test.cjs` fails on 5.1.1 and passes now.
+- **Changed from 5.1.1: layout fixes apply only with the companion on.**
+  The strip box-sizing, shrink, wrap and label rules, and the emptied
+  `desktop/desktop.scss`, changed the configured strip for everyone. They are
+  now scoped to `.je-nav--focus`; `desktop.scss` is back to 5.0.0. Compiled
+  CSS was compared: every 5.0.0 rule is unchanged and every added rule is
+  focus-scoped.
+- **Changed from 5.1.1: two listeners only with the companion on** (the desktop
+  body-class observer, and the mobile sheet close on entering the Feed).
+
+[5.1.1] - 2026-10-04
+
+The Phase 2 corrective build. One behaviour fix and the lint it exposed.
+
+- **F6 — the AI primary respects its configured surface.** 5.1.0 accepted a
+  `surface` argument in `findAiWorkspaceRow` and never used it, filtering on
+  `gateAllows`, which deliberately drops the surface rule so the projection
+  can widen the configured Messages row. Applied to the AI candidate, that
+  omission silently widened every AI row: a destination an admin had marked
+  surface "desktop" became a PRIMARY control in the mobile bottom bar. Both
+  gates are now asked for the parent AND the child, with the same user and
+  the same surface — the rule `projectGroup` already applies to every other
+  nested row. Messages remains the single named widening exception, and the
+  group-identity heuristic now answers eligibility with the same test as the
+  row it returns, so a group cannot qualify on children that are then
+  filtered out.
+- **A permanent surface-gate regression.** The review's `nav-boundary-probes.cjs`
+  is now `test/surface-gates.test.cjs`: ten cases covering the original probe,
+  nested and top-level candidates, unset and unknown surfaces failing open,
+  the gate never widening access, guests, ambiguous and mixed groups, agent
+  queries being stripped, and Messages as the only re-surfaced row.
+- **Lint.** The 51 diagnostics 5.1.0 introduced are gone and nothing is added.
+  Fixing the 50 member-ordering diagnostics in `je-nav.gjs` and
+  `je-nav-mobile.gjs` necessarily reorders those two classes, which also
+  cleared 141 pre-existing diagnostics of the SAME rule in the SAME two files.
+  No other rule was touched: the deprecated-import, template-interactivity and
+  concat diagnostics in the installed theme are left exactly as they were.
+
+Nothing else changed. `je_nav_focus_companion_enabled` remains default off,
+and the wrapping, min-width, dropdown-overflow and duplicate-desktop-CSS
+fixes continue to apply with it off. (Superseded in 5.1.2: they now apply
+only with it on.)
+
+---
 [4.1.0] - 2026-07-25
 
 One menu, two surfaces, and a menu that can finally read the room. The

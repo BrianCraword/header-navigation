@@ -255,3 +255,471 @@ export function resolveBadge(item, currentUser) {
   }
   return n > 99 ? "99+" : String(n);
 }
+
+// ── v5.1.0: the focused projection ───────────────────────────────────
+//
+// On the focused Feed the member needs FOUR primary controls — Home,
+// Explore, Messages, AI Conversations — rather than the eight-item
+// strip. What it must NOT need is a second copy of the menu.
+//
+// So this is a PROJECTION, computed per render from the configured
+// `je_nav_destinations`, and nothing is ever written back to that
+// setting. Turn the companion setting off and the configured menu
+// renders exactly as before, because the configured menu is the only
+// stored menu there has ever been.
+//
+// The schema is one level deep (dropdown -> children), and Explore needs
+// two: the original groups, each holding its own destinations. The trick
+// is that the schema ALREADY carries a second grouping axis — a child's
+// `section`, which sectionize() turns into titled columns on desktop and
+// grouped sub-headers in the mobile sheet. So a projected child takes
+// its ORIGINAL PARENT'S LABEL as its section, and the existing renderers
+// group it correctly with no new rendering concept. The child's own
+// original section is preserved as `subsection` so nothing is discarded.
+//
+// ── Permissions are resolved BEFORE regrouping ──────────────────────
+//
+// This is the part that is easy to get wrong and expensive to get wrong.
+// A child under `Matchmaking` was reachable only because its parent
+// passed `show_when: members` AND the child passed its own
+// `visible_groups` funnel stage. Flatten first and the parent's gate is
+// simply gone, and a member sees a link the server will refuse. So every
+// projected child is admitted only when rowVisible() passes for the
+// PARENT and for the CHILD, evaluated against the same user and surface
+// the projection is being built for.
+//
+// A server denial does not make a visible link acceptable. The gate is
+// the point, not the 403.
+
+// The AI workspace route. A setting rather than a constant so a site
+// whose AI plugin moves can correct it without a component release.
+export const DEFAULT_AI_WORKSPACE_HREF = "/discourse-ai/ai-bot/conversations";
+
+// Labels the focused projection restates. The configured value stays
+// untouched in the admin panel; only the projection renames it, and only
+// for the surfaces the projection builds.
+//
+// "Continue your Journey" is the VC-owned label that reads as a generic
+// site onboarding step when it is in fact the matchmaking funnel. The
+// row keeps `href_source: matchmaking_journey`, so the JOURNEY RESOLVER
+// is unchanged — this renames the door, not where it leads.
+export const FOCUS_RELABELS = new Map([
+  ["Start your Journey", "Start matchmaking"],
+  ["Continue your Journey", "Continue matchmaking"],
+  ["Finish your interview", "Finish your matchmaking interview"],
+]);
+
+export function focusRelabel(label) {
+  return FOCUS_RELABELS.get((label || "").trim()) || label;
+}
+
+// show_when, from least to most restrictive. Projection keeps the
+// STRICTER of parent and child so a carried-forward row can never widen.
+const SHOW_WHEN_RANK = { all: 0, members: 1, staff: 2 };
+
+function stricterShowWhen(parentValue, childValue) {
+  const rank = (value) => SHOW_WHEN_RANK[value] ?? SHOW_WHEN_RANK.all;
+  return rank(parentValue) >= rank(childValue)
+    ? parentValue || childValue
+    : childValue || parentValue;
+}
+
+// The access gates WITHOUT the surface rule.
+//
+// Needed because two of the four primaries are deliberately re-surfaced:
+// the configured Messages row is surface "mobile", so a surface-aware
+// filter would hide it from the desktop projection before the projection
+// ever got to widen it. Access is still fully enforced — this drops only
+// the "where does it render" rule, never show_when or visible_groups.
+export function gateAllows(item, currentUser) {
+  return itemVisible(item, currentUser) && groupsAllow(item, currentUser);
+}
+
+// Is this dropdown the site's dedicated AI group?
+//
+// Several rows legitimately point at the AI workspace: the Word group
+// offers "Omega" (a teacher), the AI group offers the workspace itself
+// plus each agent. They are NOT interchangeable, so the projection must
+// not pick whichever matches the href first — that would surface a row
+// meaning "open Omega" as the neutral "AI Conversations" control and
+// imply an agent was preselected.
+//
+// The dedicated group identifies itself structurally: every one of its
+// eligible children points at the workspace route. In the Word group one
+// child of six does. No label is hardcoded.
+function isDedicatedAiGroup(children, aiHref) {
+  if (!children.length) {
+    return false;
+  }
+  return children.every((child) => urlMatches(aiHref, child.href));
+}
+
+// The configured row that opens the AI workspace, or null.
+//
+// Priority: a top-level link to the workspace, then the first child of
+// the dedicated AI group. Returns the row plus the href with any query
+// or fragment removed, because a query is how an agent gets preselected
+// and this control must only ever open the workspace.
+export function findAiWorkspaceRow({
+  destinations,
+  currentUser,
+  surface,
+  aiHref = DEFAULT_AI_WORKSPACE_HREF,
+}) {
+  // The AI workspace is one member's private conversation list (the
+  // configured panel says so: "Private to you."). The configured group
+  // carries no show_when, and this component's law is to fail OPEN on an
+  // unknown gate — correct for a menu, wrong for a primary control that
+  // promises a personal workspace. So the projection NARROWS here: a
+  // guest gets no AI primary. Narrowing can only ever remove a link a
+  // member could not use; it never widens access. The configured group
+  // itself is untouched and still appears in Explore exactly as set.
+  if (!currentUser) {
+    return null;
+  }
+
+  // ── v5.1.1 (F6): the surface rule applies here too ─────────────────
+  //
+  // 5.1.0 took `surface` as an argument and never used it, filtering on
+  // gateAllows alone. gateAllows deliberately DROPS the surface rule,
+  // because the configured Messages row is surface "mobile" and the
+  // projection re-surfaces it on purpose — that widening is a single,
+  // named, documented exception for Messages and nothing else.
+  //
+  // Applied to the AI candidate, the same omission silently widened every
+  // AI row: the independent probe showed a destination an admin had
+  // marked surface "desktop" becoming a PRIMARY control in the mobile
+  // bottom bar. That is an admin's placement decision being overridden by
+  // this component with no exception recorded for it.
+  //
+  // So both gates are asked here, for the PARENT and for the CHILD, with
+  // the same user and the same surface — the same rule projectGroup
+  // applies to every other nested row. This can only ever remove a row
+  // from a surface the admin did not ask for; it never widens access and
+  // never grants a surface.
+  const visible = (item) => rowVisible(item, currentUser, surface);
+
+  const tops = orderedItems(destinations).filter(visible);
+
+  for (const dest of tops) {
+    if (dest.type !== "dropdown" && urlMatches(aiHref, dest.href)) {
+      return { row: dest, href: cleanURL(dest.href) || aiHref };
+    }
+  }
+
+  for (const dest of tops) {
+    if (dest.type !== "dropdown") {
+      continue;
+    }
+    // The group identifies itself by what ALL of its eligible children
+    // point at, so eligibility must be the same question here as it is
+    // for the row finally returned — otherwise a group could qualify on
+    // children that are then filtered out, and the heuristic would pick a
+    // row this surface is not allowed to show.
+    const children = orderedItems(dest.children || []).filter(visible);
+    if (isDedicatedAiGroup(children, aiHref)) {
+      const first = children[0];
+      return { row: first, href: cleanURL(first.href) || aiHref };
+    }
+  }
+
+  return null;
+}
+
+// Flatten one configured top-level destination into Explore children.
+//
+// `parent` supplies the section title and the inherited gates; `rows`
+// come back already filtered for this user and surface.
+function projectGroup(parent, currentUser, surface) {
+  const isDropdown = parent.type === "dropdown";
+  const section = (parent.label || "").trim();
+
+  if (!isDropdown) {
+    // A plain top-level link that is not one of the four primaries still
+    // needs a home, or the projection would silently drop it.
+    return [
+      {
+        ...parent,
+        label: focusRelabel(parent.label),
+        section,
+        subsection: null,
+        projected_from: section,
+        projected_gates: {
+          parent: { show_when: null, visible_groups: null },
+          child: {
+            show_when: parent.show_when || null,
+            visible_groups: parent.visible_groups || null,
+          },
+        },
+      },
+    ];
+  }
+
+  const eligible = orderedItems(parent.children || []).filter(
+    (child) =>
+      // BOTH gates, same user, same surface. This is the line that
+      // keeps the matchmaking funnel and the staff tools correct.
+      rowVisible(parent, currentUser, surface) &&
+      rowVisible(child, currentUser, surface)
+  );
+
+  // Read in the admin's intended order WITHIN the group.
+  //
+  // `order` interleaves sections: the configured Word group orders
+  // Campaign, Omega, Bible Study, Trivia, NT, OT, and the existing
+  // renderers only look coherent because sectionize() regroups them into
+  // Today / Study with a guide / Read before painting. Flattening to one
+  // section would publish that interleaved order as the reading order.
+  // So the same helper decides the sequence here, and the rows come out
+  // grouped the way the admin grouped them.
+  const ordered = sectionize(eligible).flatMap((group) => group.children);
+
+  return ordered
+    .map((child) => ({
+      ...child,
+      label: focusRelabel(child.label),
+      // The original parent becomes the group heading; the child's own
+      // section is kept rather than thrown away.
+      section,
+      subsection: (child.section || "").trim() || null,
+      projected_from: section,
+      // Carried conservatively. The authoritative filtering already
+      // happened above against this exact user; these exist so a
+      // downstream re-evaluation can only ever be redundant, never wider.
+      show_when: stricterShowWhen(parent.show_when, child.show_when),
+      visible_groups: child.visible_groups || parent.visible_groups || null,
+      projected_gates: {
+        parent: {
+          show_when: parent.show_when || null,
+          visible_groups: parent.visible_groups || null,
+        },
+        child: {
+          show_when: child.show_when || null,
+          visible_groups: child.visible_groups || null,
+        },
+      },
+    }));
+}
+
+// The focused projection.
+//
+// Returns { primary, explore, mapping }:
+//   primary  — the ordered focused controls, ready to decorate exactly
+//              like configured destinations
+//   explore  — the Explore dropdown, children carrying section titles
+//   mapping  — every configured destination and what became of it, so a
+//              review can check that nothing was dropped
+//
+// `brand` is the separate brand link (je_nav_show_brand / _brand_label),
+// which owns the real "Home" label and points at "/". Home in the
+// focused strip is /feed, so the brand's destination moves into Explore
+// as "Community home" and there is never a second Home label.
+export function focusedProjection({
+  destinations = [],
+  currentUser = null,
+  surface = "desktop",
+  brand = null,
+  aiHref = DEFAULT_AI_WORKSPACE_HREF,
+  homeHref = "/feed",
+  messagesHref = "/my/messages",
+  labels = {},
+} = {}) {
+  const tops = orderedItems(destinations);
+  const mapping = [];
+  const claimed = new Set();
+
+  const note = (label, outcome, detail) =>
+    mapping.push({ label, outcome, detail });
+
+  // Two populations, deliberately different:
+  //   permitted — passes show_when and visible_groups. The four
+  //               primaries are chosen from here, because the projection
+  //               re-surfaces them on purpose.
+  //   visibleTop — also passes the surface rule. Explore is built from
+  //               here, so a destination an admin marked mobile-only
+  //               keeps that meaning in the Explore sheet.
+  const permitted = tops.filter((dest) => gateAllows(dest, currentUser));
+  const visibleTop = permitted.filter((dest) =>
+    surfaceMatches(dest, surface)
+  );
+  tops
+    .filter((dest) => !permitted.includes(dest))
+    .forEach((dest) => note(dest.label, "hidden", "gate denied for this user"));
+
+  // ── Home: the configured /feed link, relabelled ──────────────────
+  const homeRow =
+    permitted.find(
+      (dest) => dest.type !== "dropdown" && urlMatches(homeHref, dest.href)
+    ) || null;
+  let primary = [];
+  if (homeRow) {
+    claimed.add(homeRow);
+    note(homeRow.label, "primary", `Home -> ${homeHref}`);
+    primary.push({
+      ...homeRow,
+      label: labels.home || "Home",
+      surface: "both",
+      presentation_override: null,
+    });
+  }
+
+  // ── Explore: everything else, grouped by its original parent ─────
+  const exploreChildren = [];
+
+  // The brand's destination leads the sheet, ungrouped, so the way back
+  // to the forum is the first thing in it. sectionize() renders a
+  // section-less child as the untitled first group.
+  if (brand?.show && brand.href) {
+    exploreChildren.push({
+      label: labels.community_home || "Community home",
+      href: brand.href,
+      icon: brand.icon || null,
+      subtext: labels.community_home_subtext || null,
+      section: "",
+      subsection: null,
+      projected_from: "(brand link)",
+    });
+    note(
+      `${brand.label || "Home"} (brand link)`,
+      "explore",
+      `kept as "${labels.community_home || "Community home"}" -> ${brand.href}; the global brand outside /feed is unchanged`
+    );
+  }
+
+  // ── Messages and AI Conversations are primaries, not Explore rows ─
+  const messagesRow =
+    permitted.find(
+      (dest) => dest.type !== "dropdown" && urlMatches(messagesHref, dest.href)
+    ) || null;
+
+  const ai = findAiWorkspaceRow({
+    destinations,
+    currentUser,
+    surface,
+    aiHref,
+  });
+
+  permitted
+    .filter((dest) => !visibleTop.includes(dest) && dest !== messagesRow)
+    .forEach((dest) =>
+      note(
+        dest.label,
+        "hidden",
+        `configured surface "${dest.surface}" excludes the ${surface} projection`
+      )
+    );
+
+  for (const dest of visibleTop) {
+    if (claimed.has(dest) || dest === messagesRow) {
+      continue;
+    }
+    const rows = projectGroup(dest, currentUser, surface);
+    if (rows.length === 0) {
+      note(dest.label, "empty", "no child passed both gates for this user");
+      continue;
+    }
+    exploreChildren.push(...rows);
+    note(
+      dest.label,
+      "explore",
+      `${rows.length} destination(s) under the "${dest.label}" group`
+    );
+  }
+
+  const explore =
+    exploreChildren.length > 0
+      ? {
+          label: labels.explore || "Explore",
+          type: "dropdown",
+          icon: "compass",
+          surface: "both",
+          mobile_pinned: true,
+          panel_title: labels.explore_title || "Explore",
+          panel_subtext: labels.explore_subtext || null,
+          sheet_layout: "list",
+          children: exploreChildren,
+        }
+      : null;
+  if (explore) {
+    primary.push(explore);
+  }
+
+  if (messagesRow) {
+    claimed.add(messagesRow);
+    // PRESENTATION OVERRIDE, recorded deliberately: the configured row is
+    // surface "mobile", so the desktop strip never showed it. In the
+    // focused four it is one of the primaries on BOTH surfaces. The gate
+    // (show_when: members) and the unread badge_source are untouched —
+    // only where it renders changes.
+    note(
+      messagesRow.label,
+      "primary",
+      "Messages -> configured /my/messages entry; surface widened from mobile to both (presentation override), gate and unread badge unchanged"
+    );
+    primary.push({
+      ...messagesRow,
+      label: labels.messages || messagesRow.label || "Messages",
+      surface: "both",
+      presentation_override: "surface: mobile -> both",
+    });
+  }
+
+  if (ai) {
+    note(
+      ai.row.label,
+      "primary",
+      `AI Conversations -> ${ai.href} (workspace only; label is neutral and any query was dropped so no agent is preselected). The configured row also remains in Explore.`
+    );
+    primary.push({
+      ...ai.row,
+      label: labels.ai || "AI Conversations",
+      href: ai.href,
+      // The workspace, never an agent: drop anything that could
+      // preselect one, including a dynamic href source.
+      href_source: null,
+      badge_source: ai.row.badge_source || null,
+      surface: "both",
+      presentation_override: "label neutralised; query/fragment removed",
+    });
+  }
+
+  return { primary, explore, mapping };
+}
+
+// ── The Feed integration contract (v5.1.0) ───────────────────────────
+//
+// A theme component and a plugin cannot import each other, so the two
+// coordinate through the DOM and one document event. This is the whole
+// contract; it is deliberately tiny.
+//
+// 1. WHEN IS THE FOCUSED ROUTE ACTIVE?
+//    The Feed plugin's own route adds `vc-feed-active` on /feed and
+//    `vc-feed-focus` when its `vc_feed_focus_enabled` setting is on, and
+//    removes both on deactivate. Requiring BOTH is what scopes this
+//    projection to the focused Feed route and nothing else — no route
+//    name is hardcoded here, and no setting is read across the boundary.
+//
+// 2. WHO OWNS THE MOBILE EXPLORE CONTROL?
+//    While the projection is mounted on mobile this component adds
+//    `je-nav-focus-explore` to <body>. That class is the ONLY promise
+//    Feed needs: it means "a real Explore control exists in the bottom
+//    bar right now". Feed stands its own fallback down when it is
+//    present and keeps it otherwise — so if this component is absent,
+//    disabled, or not yet mounted, the member still has Explore.
+//
+// 3. HOW DOES FEED ASK FOR THE SHEET?
+//    Dispatch `je-nav:explore:open` on document. If the projection is
+//    mounted it opens the shared Explore sheet. If nothing is listening
+//    the event is simply unheard, which is why Feed must only hide its
+//    own control on the class above, never on the event.
+export const FEED_FOCUS_CLASSES = ["vc-feed-active", "vc-feed-focus"];
+export const EXPLORE_READY_CLASS = "je-nav-focus-explore";
+export const EXPLORE_OPEN_EVENT = "je-nav:explore:open";
+
+export function feedFocusRouteActive(doc) {
+  const list = (doc || document)?.body?.classList;
+  if (!list) {
+    return false;
+  }
+  return FEED_FOCUS_CLASSES.every((name) => list.contains(name));
+}

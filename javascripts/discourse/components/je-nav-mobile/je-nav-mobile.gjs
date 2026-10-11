@@ -12,6 +12,11 @@ import { ajax } from "discourse/lib/ajax";
 import avatar from "discourse/helpers/avatar";
 import icon from "discourse-common/helpers/d-icon";
 import {
+  DEFAULT_AI_WORKSPACE_HREF,
+  EXPLORE_OPEN_EVENT,
+  EXPLORE_READY_CLASS,
+  feedFocusRouteActive,
+  focusedProjection,
   itemVisible,
   orderedItems,
   resolveBadge,
@@ -21,6 +26,7 @@ import {
   sectionize,
   urlMatches,
 } from "../../lib/je-nav-core";
+import { i18n } from "discourse-i18n";
 
 // ── Mobile Bottom Nav (v3) ───────────────────────────────────────────────
 //
@@ -64,7 +70,16 @@ export default class JeNavMobile extends Component {
   @tracked identityOpen = false;
   @tracked identityStats = null;
 
-  destinations = settings.je_nav_destinations || [];
+  @tracked focusRoute = feedFocusRouteActive();
+destinations = settings.je_nav_destinations || [];
+  // v5.1.0 — the focused-Feed companion (see je-nav-core for the whole
+  // contract). Opt-in, and additionally scoped to the Feed's focused
+  // route, so every other page is untouched.
+  focusCompanionEnabled = settings.je_nav_focus_companion_enabled;
+  focusAiHref = settings.je_nav_focus_ai_href || DEFAULT_AI_WORKSPACE_HREF;
+  focusHomeHref = settings.je_nav_focus_home_href || "/feed";
+  focusKeepExplore = settings.je_nav_focus_keep_explore_on_scroll;
+  
   showLabels = settings.je_nav_mobile_show_labels;
   hideOnScroll = settings.je_nav_mobile_hide_on_scroll;
   moreLabel = settings.je_nav_mobile_more_label || "More";
@@ -83,7 +98,60 @@ export default class JeNavMobile extends Component {
     .map((className) => className.trim())
     .filter(Boolean);
 
-  _lastY = 0;
+  onClassMutation = () => {
+    // The Feed route adds vc-feed-active / vc-feed-focus in activate(),
+    // which can land after routeDidChange, so the class is the signal.
+    const active = feedFocusRouteActive();
+    if (this.focusRoute !== active) {
+      this.focusRoute = active;
+      // The tab lineup is about to change, so an open sheet belongs to a
+      // tab that may no longer exist. Only when the companion is on: with
+      // it off the lineup never changes, and 5.0.0 behaviour is kept.
+      if (this.focusCompanionEnabled) {
+        this._closeSheet();
+        this.barHidden = false;
+      }
+    }
+    this._scheduleMobileMode();
+  };
+onScroll = () => {
+    if (this._scrollTicking) {
+      return;
+    }
+    this._scrollTicking = true;
+    requestAnimationFrame(() => {
+      this._scrollTicking = false;
+      if (this.overlayOpen) {
+        return; // never hide under an open sheet
+      }
+      const y = Math.max(0, window.scrollY); // iOS rubber-band guard
+      const delta = y - this._lastY;
+      if (Math.abs(delta) < SCROLL_DELTA_MIN) {
+        return;
+      }
+      if (y <= SCROLL_REVEAL_CEILING) {
+        this.barHidden = false;
+      } else if (this.focusActive && this.focusKeepExplore) {
+        // On the focused Feed the bar IS the Explore owner, and the
+        // stream is endless — hiding it on scroll put community
+        // features further away with every page, which is the exact
+        // complaint F6 was raised for. The override is scoped to this
+        // one mode; every other route keeps the admin's
+        // je_nav_mobile_hide_on_scroll setting.
+        this.barHidden = false;
+      } else {
+        this.barHidden = delta > 0;
+      }
+      this._lastY = y;
+    });
+  };
+onKeydown = (event) => {
+    if (event.key === "Escape" && this.overlayOpen) {
+      this._closeSheet();
+      this._closeIdentity();
+    }
+  };
+_lastY = 0;
   _scrollTicking = false;
   _mobileMounted = false;
   _mobileModeFrame = null;
@@ -128,11 +196,71 @@ export default class JeNavMobile extends Component {
     };
   }
 
+  get focusActive() {
+    return !!this.focusCompanionEnabled && this.focusRoute;
+  }
+
+  // The focused projection, or the configured list. Identical shape, so
+  // the decoration, pinning, sheet and badge logic below are unchanged
+  // and the two surfaces cannot drift apart.
+  get barSource() {
+    if (!this.focusActive) {
+      return this.destinations;
+    }
+    const { primary } = focusedProjection({
+      destinations: this.destinations,
+      currentUser: this.currentUser,
+      surface: "mobile",
+      brand: {
+        show: settings.je_nav_show_brand,
+        label: settings.je_nav_brand_label,
+        icon: settings.je_nav_brand_icon,
+        href: "/",
+      },
+      aiHref: this.focusAiHref,
+      homeHref: this.focusHomeHref,
+      labels: {
+        home: i18n(themePrefix("je_nav.focus.home")),
+        explore: i18n(themePrefix("je_nav.focus.explore")),
+        explore_title: i18n(themePrefix("je_nav.focus.explore_title")),
+        explore_subtext: i18n(themePrefix("je_nav.focus.explore_subtext")),
+        messages: i18n(themePrefix("je_nav.focus.messages")),
+        ai: i18n(themePrefix("je_nav.focus.ai")),
+        community_home: i18n(themePrefix("je_nav.focus.community_home")),
+        community_home_subtext: i18n(themePrefix("je_nav.focus.community_home_subtext")),
+      },
+    });
+    return primary;
+  }
+
   get _visibleDestinations() {
-    return orderedItems(this.destinations)
+    return orderedItems(this.barSource)
       .filter((dest) => rowVisible(dest, this.currentUser, "mobile"))
       .map((dest) => this._decorate(dest))
       .filter((dest) => !dest.isDropdown || dest.children.length > 0);
+  }
+
+  // The label of the projected Explore tab, so the integration event can
+  // open exactly that sheet without guessing.
+  get _exploreKey() {
+    return i18n(themePrefix("je_nav.focus.explore"));
+  }
+
+  // Is a real Explore control on screen for the member right now?
+  //
+  // This is the promise behind EXPLORE_READY_CLASS, and it is
+  // deliberately strict: the projection must be active, the bar must be
+  // rendering at this viewport, and the bar must not be suppressed by an
+  // immersive route or an open composer. Feed stands its own fallback
+  // down on this and nothing else, so a loose answer here would leave a
+  // member with no Explore at all.
+  get _exploreOwned() {
+    return (
+      this.focusActive &&
+      this.showBar &&
+      !this._suppressActive() &&
+      this._orderedTabs.some((tab) => tab.key === this._exploreKey)
+    );
   }
 
   get _split() {
@@ -428,6 +556,7 @@ export default class JeNavMobile extends Component {
       this._closeIdentity();
       this.barHidden = false;
       this._lastY = Math.max(0, window.scrollY);
+      this.focusRoute = feedFocusRouteActive();
       this._scheduleMobileMode(true);
     };
     this.router.on("routeDidChange", this.routeListener);
@@ -436,6 +565,8 @@ export default class JeNavMobile extends Component {
       this._lastY = Math.max(0, window.scrollY);
       window.addEventListener("scroll", this.onScroll, { passive: true });
     }
+    // With hide-on-scroll off there is nothing to override and no
+    // listener is needed: the bar already stays put.
     document.addEventListener("keydown", this.onKeydown);
 
     // Other surfaces (the vc-feed porch avatar) summon the identity
@@ -450,6 +581,16 @@ export default class JeNavMobile extends Component {
     // Route classes live on <body>, while state classes such as
     // composer-open live on <html>. Observe both so suppression responds to
     // route transitions and overlays that do not emit a route change.
+    // Feed asks for the shared sheet rather than opening a second one.
+    this.onExploreRequest = (event) => {
+      if (!this._exploreOwned) {
+        return; // not ours to answer; Feed keeps its own fallback
+      }
+      event.preventDefault(); // "claimed", same convention as identity
+      this._openSheet(this._exploreKey);
+    };
+    document.addEventListener(EXPLORE_OPEN_EVENT, this.onExploreRequest);
+
     this._classObserver = new MutationObserver(this.onClassMutation);
     this._classObserver.observe(document.documentElement, {
       attributes: true,
@@ -480,6 +621,9 @@ export default class JeNavMobile extends Component {
     }
     window.removeEventListener("scroll", this.onScroll);
     document.removeEventListener("keydown", this.onKeydown);
+    if (this.onExploreRequest) {
+      document.removeEventListener(EXPLORE_OPEN_EVENT, this.onExploreRequest);
+    }
     if (this.onIdentityRequest) {
       document.removeEventListener(
         "je-nav:identity:open",
@@ -491,6 +635,9 @@ export default class JeNavMobile extends Component {
       "je-nav-mobile-on",
       "je-nav-mobile-suppressed"
     );
+    // Hand Explore back to Feed's fallback before this component goes
+    // away, or the member is left with neither.
+    document.body.classList.remove(EXPLORE_READY_CLASS);
   }
 
   _suppressActive() {
@@ -508,6 +655,10 @@ export default class JeNavMobile extends Component {
     const suppressed = this._suppressActive();
     document.body.classList.toggle("je-nav-mobile-on", !suppressed);
     document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
+    // The Feed integration contract. toggle() with an explicit force does
+    // not rewrite an unchanged attribute, so this cannot re-trigger the
+    // class observer that called it.
+    document.body.classList.toggle(EXPLORE_READY_CLASS, this._exploreOwned);
   }
 
   _scheduleMobileMode(delayed = false) {
@@ -532,40 +683,11 @@ export default class JeNavMobile extends Component {
     }
   }
 
-  onClassMutation = () => {
-    this._scheduleMobileMode();
-  };
+  
 
-  onScroll = () => {
-    if (this._scrollTicking) {
-      return;
-    }
-    this._scrollTicking = true;
-    requestAnimationFrame(() => {
-      this._scrollTicking = false;
-      if (this.overlayOpen) {
-        return; // never hide under an open sheet
-      }
-      const y = Math.max(0, window.scrollY); // iOS rubber-band guard
-      const delta = y - this._lastY;
-      if (Math.abs(delta) < SCROLL_DELTA_MIN) {
-        return;
-      }
-      if (y <= SCROLL_REVEAL_CEILING) {
-        this.barHidden = false;
-      } else {
-        this.barHidden = delta > 0;
-      }
-      this._lastY = y;
-    });
-  };
+  
 
-  onKeydown = (event) => {
-    if (event.key === "Escape" && this.overlayOpen) {
-      this._closeSheet();
-      this._closeIdentity();
-    }
-  };
+  
 
   _openSheet(key) {
     this.sheetKey = key;

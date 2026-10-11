@@ -360,3 +360,41 @@ je_nav_mobile_center_emphasis:
   description: "Place the emphasized destination in the VISUAL CENTER of the bottom bar, with the remaining tabs distributed around it (the raised-center-button grammar). OFF renders it in list order, so its position depends on how many tabs you happen to have pinned."
   type: bool
   default: true
+
+# ── v5.1.0: the focused-Feed navigation companion (opt-in) ──────────────
+#
+# OFF (default) changes nothing anywhere. The configured strip, the bottom
+# bar, the brand link, the global root and every preference render exactly
+# as they do today, on every route including /feed.
+#
+# ON, and ONLY while the member is on the Feed's focused route (the Feed
+# plugin's own `vc_feed_focus_enabled` adds body.vc-feed-focus there), the
+# navigation renders a four-control PROJECTION of the destinations you have
+# already configured: Home · Explore · Messages · AI Conversations.
+#
+# It is a projection, not a migration. `je_nav_destinations` is never
+# rewritten, nothing is deleted, and every destination keeps its gates:
+# a row regrouped under Explore is admitted only if its ORIGINAL PARENT and
+# the row itself both pass show_when and visible_groups for that member.
+# Turning this off is instant and complete — there is nothing to undo.
+#
+# Outside /feed, every other route keeps its existing menus and the
+# member's own sidebar preference, untouched.
+
+je_nav_focus_companion_enabled:
+  description: "Render a four-control projection of your configured destinations (Home · Explore · Messages · AI Conversations) while a member is on the Feed's focused route. OFF by default and non-destructive: your destinations setting is never rewritten, all gates are preserved, and every other route is unchanged."
+  type: bool
+  default: false
+
+je_nav_focus_ai_href:
+  description: "The AI workspace path the focused 'AI Conversations' control opens. The projection picks your configured row for this path and opens the WORKSPACE only — any query is dropped so no agent is preselected. Correct this if your AI plugin's route changes."
+  default: "/discourse-ai/ai-bot/conversations"
+
+je_nav_focus_home_href:
+  description: "The path the focused 'Home' control opens. Defaults to the Feed. Your separate brand link keeps its own destination and is offered inside Explore as 'Community home'."
+  default: "/feed"
+
+je_nav_focus_keep_explore_on_scroll:
+  description: "On the focused Feed only, keep the mobile bar (and so Explore) in place while scrolling, overriding 'Hide bottom bar on scroll'. Community features stay one tap away however far a member reads. Everywhere else the hide-on-scroll setting is unchanged."
+  type: bool
+  default: true

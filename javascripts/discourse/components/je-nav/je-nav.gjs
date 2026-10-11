@@ -10,7 +10,11 @@ import didInsert from "@ember/render-modifiers/modifiers/did-insert";
 import willDestroy from "@ember/render-modifiers/modifiers/will-destroy";
 import DiscourseURL from "discourse/lib/url";
 import icon from "discourse-common/helpers/d-icon";
+import { i18n } from "discourse-i18n";
 import {
+  DEFAULT_AI_WORKSPACE_HREF,
+  feedFocusRouteActive,
+  focusedProjection,
   orderedItems,
   resolveBadge,
   resolveDynamicHref,
@@ -48,7 +52,9 @@ export default class JeNav extends Component {
   // v4.1.1 — hover intent. Dropdowns open on mouseenter and close on
   // mouseleave (after a short grace period so the pointer can cross the
   // gap into the panel). Only for pointers that can actually hover;
-  // touch keeps the click toggle, keyboard keeps Enter/Escape.
+  @tracked focusRoute = feedFocusRouteActive();
+@tracked sidebarHidden = this._readSidebarPref();
+// touch keeps the click toggle, keyboard keeps Enter/Escape.
   hoverEnabled =
     settings.je_nav_desktop_open_on_hover &&
     typeof window !== "undefined" &&
@@ -58,25 +64,76 @@ export default class JeNav extends Component {
   )
     ? Number(settings.je_nav_desktop_hover_close_delay)
     : 160;
-  _hoverTimer = null;
-
   destinations = settings.je_nav_destinations || [];
-  showBrand = settings.je_nav_show_brand;
-  brandLabel = settings.je_nav_brand_label;
-  brandIcon = settings.je_nav_brand_icon;
-  showAvatar = settings.je_nav_show_avatar;
-  showAnon = settings.je_nav_show_anon;
-
-  // Sidebar toggle: master switch + per-user remembered preference.
-  sidebarMasterOn = settings.je_nav_hide_sidebar_in_plaza;
-  forumClasses = (settings.je_nav_forum_route_classes || "")
+// other page.
+focusCompanionEnabled = settings.je_nav_focus_companion_enabled;
+// to the Feed's own focused route, so turning it on cannot change any
+focusAiHref = settings.je_nav_focus_ai_href || DEFAULT_AI_WORKSPACE_HREF;
+// v5.1.0 — the focused-Feed companion. Opt-in, and additionally scoped
+focusHomeHref = settings.je_nav_focus_home_href || "/feed";
+showBrand = settings.je_nav_show_brand;
+brandLabel = settings.je_nav_brand_label;
+brandIcon = settings.je_nav_brand_icon;
+showAvatar = settings.je_nav_show_avatar;
+showAnon = settings.je_nav_show_anon;
+// Sidebar toggle: master switch + per-user remembered preference.
+sidebarMasterOn = settings.je_nav_hide_sidebar_in_plaza;
+forumClasses = (settings.je_nav_forum_route_classes || "")
     .split("|")
     .map((className) => className.trim())
     .filter(Boolean);
-  @tracked sidebarHidden = this._readSidebarPref();
+onBodyClassChanged = () => {
+    const active = feedFocusRouteActive();
+    if (this.focusRoute !== active) {
+      this.focusRoute = active;
+      // A projection change replaces the strip's rows, so an open panel
+      // would be anchored to a trigger that no longer exists.
+      this.openDropdown = null;
+    }
+  };
+closeOnOutside = () => {
+    this.openDropdown = null;
+  };
+onSidebarPrefChanged = () => {
+    this._scheduleDesktopMode();
+  };
+_hoverTimer = null;
 
-  _desktopModeFrame = null;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+
+  
+
+
+_desktopModeFrame = null;
   _desktopMounted = false;
+
+  _scheduleDesktopMode = () => {
+    if (!this._desktopMounted || this._desktopModeFrame !== null) {
+      return;
+    }
+    this._desktopModeFrame = requestAnimationFrame(() => {
+      this._desktopModeFrame = null;
+      this._applyDesktopMode();
+    });
+  };
 
   get showStrip() {
     return (
@@ -121,10 +178,58 @@ export default class JeNav extends Component {
   //
   // Stable order-aware sort: items with an `order` number sort ascending;
   // items without keep their list position, after ordered ones on ties.
+  get focusActive() {
+    return !!this.focusCompanionEnabled && this.focusRoute;
+  }
+
+  // The brand lockup owns the word "Home" and points at "/". In the
+  // focused projection Home is /feed, so the brand stands down here and
+  // its destination is offered inside Explore as "Community home" —
+  // there is never a second competing Home label. Everywhere else the
+  // brand renders exactly as configured.
+  get showBrandNow() {
+    return this.showBrand && !this.focusActive;
+  }
+
+  // The focused projection, or the configured list. Both are the same
+  // shape, so ONE decoration path below serves both and the two surfaces
+  // cannot drift.
+  get stripSource() {
+    if (!this.focusActive) {
+      return this.destinations;
+    }
+    const { primary } = focusedProjection({
+      destinations: this.destinations,
+      currentUser: this.currentUser,
+      surface: "desktop",
+      brand: {
+        show: this.showBrand,
+        label: this.brandLabel,
+        icon: this.brandIcon,
+        href: "/",
+      },
+      aiHref: this.focusAiHref,
+      homeHref: this.focusHomeHref,
+      labels: {
+        home: i18n(themePrefix("je_nav.focus.home")),
+        explore: i18n(themePrefix("je_nav.focus.explore")),
+        explore_title: i18n(themePrefix("je_nav.focus.explore_title")),
+        explore_subtext: i18n(themePrefix("je_nav.focus.explore_subtext")),
+        messages: i18n(themePrefix("je_nav.focus.messages")),
+        ai: i18n(themePrefix("je_nav.focus.ai")),
+        community_home: i18n(themePrefix("je_nav.focus.community_home")),
+        community_home_subtext: i18n(themePrefix("je_nav.focus.community_home_subtext")),
+      },
+    });
+    return primary;
+  }
+
   @cached
   get decoratedDestinations() {
     const current = this.currentURL;
-    return orderedItems(this.destinations)
+    // `focusRoute` is read through focusActive/stripSource, which is what
+    // makes this recompute when the member enters or leaves /feed.
+    return orderedItems(this.stripSource)
       .filter((dest) => rowVisible(dest, this.currentUser, "desktop"))
       .map((dest) => {
         const isDropdown = dest.type === "dropdown";
@@ -180,9 +285,22 @@ export default class JeNav extends Component {
     this.routeListener = () => {
       this.currentURL = this.router.currentURL || "/";
       this.openDropdown = null;
+      this.focusRoute = feedFocusRouteActive();
       this._scheduleDesktopMode();
     };
     this.router.on("routeDidChange", this.routeListener);
+    // The Feed route adds its body classes in activate(), which can run
+    // after routeDidChange, so the route event alone is not enough to
+    // notice the focused route. Observing the attribute is exact and
+    // costs one listener. Only when the companion is on; with it off
+    // nothing reads the focused route.
+    if (this.focusCompanionEnabled) {
+      this._focusObserver = new MutationObserver(this.onBodyClassChanged);
+      this._focusObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    }
     document.addEventListener("click", this.closeOnOutside);
     document.addEventListener(
       "je-nav:sidebar-pref-changed",
@@ -191,9 +309,15 @@ export default class JeNav extends Component {
     this._scheduleDesktopMode();
   }
 
-  @action
+  
+
+  
+
+@action
   teardown() {
     this._desktopMounted = false;
+    this._focusObserver?.disconnect();
+    this._focusObserver = null;
     if (this._desktopModeFrame !== null) {
       cancelAnimationFrame(this._desktopModeFrame);
       this._desktopModeFrame = null;
@@ -215,11 +339,11 @@ export default class JeNav extends Component {
     }
   }
 
-  closeOnOutside = () => {
-    this.openDropdown = null;
-  };
+  
 
-  _isForumRoute() {
+  
+
+_isForumRoute() {
     const name = this.router.currentRouteName || "";
     if (name.startsWith("topic.")) {
       return true;
@@ -241,19 +365,9 @@ export default class JeNav extends Component {
     document.body.classList.toggle("has-sidebar-page", !plaza);
   }
 
-  _scheduleDesktopMode = () => {
-    if (!this._desktopMounted || this._desktopModeFrame !== null) {
-      return;
-    }
-    this._desktopModeFrame = requestAnimationFrame(() => {
-      this._desktopModeFrame = null;
-      this._applyDesktopMode();
-    });
-  };
+  
 
-  onSidebarPrefChanged = () => {
-    this._scheduleDesktopMode();
-  };
+  
 
   // v4.1.2 — one navigation path for strip items and dropdown rows.
   //   • modifier / middle clicks are left to the browser (new tab works)
@@ -387,12 +501,12 @@ export default class JeNav extends Component {
   <template>
     {{#if this.showStrip}}
       <div
-        class="je-nav"
+        class="je-nav {{if this.focusActive 'je-nav--focus'}}"
         {{didInsert this.trackRoute}}
         {{willDestroy this.teardown}}
       >
         <div class="je-nav__inner">
-          {{#if this.showBrand}}
+          {{#if this.showBrandNow}}
             <a
               href="/"
               class="je-nav__brand"

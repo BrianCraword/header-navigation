@@ -137,3 +137,17 @@ en:
       je_nav_sidebar_default_hidden: "Default sidebar state for users without a saved preference, when Plaza mode is on."
       je_nav_forum_route_classes: "Body classes that mark a forum route, where the sidebar stays visible."
       svg_icons: "Extra FontAwesome icons referenced by your destinations or brand — per site, no rebuild."
+      je_nav_focus_companion_enabled: "Render Home · Explore · Messages · AI Conversations as a projection of your configured destinations while a member is on the Feed's focused route. Off by default; your destinations setting is never rewritten and all gates are kept."
+      je_nav_focus_ai_href: "Path the focused AI Conversations control opens. The workspace only — any query is dropped so no agent is preselected."
+      je_nav_focus_home_href: "Path the focused Home control opens. Defaults to the Feed; the brand link stays available in Explore as Community home."
+      je_nav_focus_keep_explore_on_scroll: "On the focused Feed only, keep the bottom bar in place while scrolling so Explore stays reachable. Other routes keep the hide-on-scroll setting."
+  je_nav:
+    focus:
+      home: "Home"
+      explore: "Explore"
+      explore_title: "Explore"
+      explore_subtext: "Everything the community has, grouped the way it is set up."
+      messages: "Messages"
+      ai: "AI Conversations"
+      community_home: "Community home"
+      community_home_subtext: "The forum front page"

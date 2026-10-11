@@ -407,3 +407,63 @@
     &:hover { background: rgba(255, 255, 255, 0.1); color: var(--header_primary); }
   }
 }
+
+// ── v5.1.0: the focused projection ─────────────────────────────────────
+//
+// Everything below is scoped to `.je-nav--focus`, the root class the
+// component adds only while the projection is mounted (switch
+// `je_nav_focus_companion_enabled` on, member on the focused Feed). With
+// the switch off, 5.1.2 renders exactly as 5.0.0.
+//
+// The layout fixes in this block were written for the whole strip in
+// 5.1.0/5.1.1 (box-sizing, shrinkable items, ellipsized labels, wrap).
+// 5.1.2 keeps them, scoped here, so installing the release changes nothing
+// a member sees until the switch is turned on. They can be promoted to the
+// configured strip later as their own measured release.
+//
+// No `overflow` is introduced on any ancestor of `.je-nav__group`: the
+// dropdown panels are absolutely positioned inside it, and a scroll
+// container here would clip every mega menu.
+.je-nav--focus {
+  .je-nav__inner {
+    // width:100% plus padding and border is 12px wider than the parent
+    // under content-box.
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  .je-nav__brand,
+  .je-nav__sidebar-toggle,
+  .je-nav__item .je-nav__icon,
+  .je-nav__item .je-nav__caret {
+    flex: 0 0 auto;
+  }
+
+  .je-nav__items {
+    // Four controls: take the space they need, leave the rest to the
+    // spacer, and wrap rather than push a control off the page.
+    min-width: 0;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .je-nav__group,
+  .je-nav__item {
+    min-width: 0;
+  }
+
+  // The labels are short and known (Home · Explore · Messages · AI
+  // Conversations), so they read in full at every desktop width.
+  .je-nav__item > span:not([class]) {
+    min-width: 0;
+    white-space: nowrap;
+  }
+}
+
+// Explore carries the whole community map, so its panel is the widest of
+// the mega menus. Bounded by the viewport so it cannot become the new
+// overflow owner.
+.je-nav--focus .je-nav__dropdown--mega {
+  max-width: min(960px, calc(100vw - 2rem));
+}

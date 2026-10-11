@@ -43,6 +43,25 @@ one titled column per section. No sections → classic single column.
 Brand (label + icon), avatar link, and the Plaza sidebar-hiding behavior
 are their own settings — see descriptions in the admin panel.
 
+## Focused Feed companion (5.1.0+)
+
+Off by default. With `je_nav_focus_companion_enabled` on, and only while a
+member is on the Feed's focused route (the Feed plugin's
+`vc_feed_focus_enabled` must be on), the strip and the mobile bar show four
+controls instead of the configured menu: Home · Explore · Messages · AI
+Conversations. They are computed from `je_nav_destinations`, which is never
+rewritten; every `show_when` gate still applies, and `surface` too, except
+that the Messages row (configured for mobile) is deliberately shown on desktop.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `je_nav_focus_companion_enabled` | `false` | The switch. Off: 5.1.2 renders exactly as 5.0.0. |
+| `je_nav_focus_ai_href` | `/discourse-ai/ai-bot/conversations` | Where AI Conversations opens (any query is dropped). |
+| `je_nav_focus_home_href` | `/feed` | Where Home opens. |
+| `je_nav_focus_keep_explore_on_scroll` | `true` | Keep the mobile bar visible while scrolling the focused Feed. |
+
+Tests: `node --test test/*.cjs` (surface gates and translation keys).
+
 ## Example: a Word-centered site menu
 
 ```json
