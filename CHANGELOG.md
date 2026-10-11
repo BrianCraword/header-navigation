@@ -1,6 +1,17 @@
 # Header Mega Nav — Changelog
 
 ---
+[5.1.3] - 2026-10-11
+
+- **Fixed: the focused bar shows all four controls, in order.** The
+  projection copied `order` and `mobile_pinned` from the configured rows.
+  On the live site Messages and the AI row are unpinned, so the phone bar
+  read Home · Explore · More, and Explore (no order) sorted last on the
+  desktop strip. The four are now always pinned and ordered Home · Explore ·
+  Messages · AI Conversations. Test: `test/focus-order.test.cjs`.
+- Only affects the focused Feed with `je_nav_focus_companion_enabled` on.
+
+---
 [5.1.2] - 2026-10-11
 
 The first release of the 5.1 line on GitHub (5.1.0 and 5.1.1 were candidates

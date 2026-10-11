@@ -683,6 +683,17 @@ export function focusedProjection({
     });
   }
 
+  // The four are the whole bar, in this order, on both surfaces. Rows
+  // copied from the configured menu bring their own `order` and
+  // `mobile_pinned`, and Explore has neither: orderedItems() then sorted
+  // Explore last, and the mobile bar sent unpinned Messages and AI into
+  // More (seen live, 5.1.2). Set both explicitly.
+  primary = primary.map((dest, index) => ({
+    ...dest,
+    order: index + 1,
+    mobile_pinned: true,
+  }));
+
   return { primary, explore, mapping };
 }
 
