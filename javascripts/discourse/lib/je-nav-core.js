@@ -138,24 +138,37 @@ export function surfaceMatches(item, surface) {
 // ("show 'Finish your interview' to mm_onboarding"), and staff seeing
 // every stage at once would make the funnel impossible to inspect. Use
 // show_when: staff for genuine staff tools.
-export function groupsAllow(item, currentUser) {
-  const raw = item?.visible_groups;
+//
+// hidden_groups (5.2.0) is the inverse: the row is hidden from members of
+// ANY listed group. It exists for the entry row of a funnel — "Start your
+// Journey" is for everyone NOT yet in it, and without an exclusion an
+// mm_onboarding member saw it next to "Continue your Journey", two rows
+// to the same place. Same name-list format; same no-staff-bypass rule.
+// Checked after visible_groups, so a row can be narrowed and excluded.
+function groupNames(raw) {
   if (!raw) {
-    return true;
+    return [];
   }
-  const wanted = (Array.isArray(raw) ? raw : String(raw).split("|"))
+  return (Array.isArray(raw) ? raw : String(raw).split("|"))
     .map((name) => String(name).trim().toLowerCase())
     .filter(Boolean);
-  if (wanted.length === 0) {
+}
+
+export function groupsAllow(item, currentUser) {
+  const wanted = groupNames(item?.visible_groups);
+  const hidden = groupNames(item?.hidden_groups);
+  if (wanted.length === 0 && hidden.length === 0) {
     return true;
   }
-  if (!currentUser) {
+  const mine = new Set(
+    (currentUser?.groups || []).map((g) =>
+      String(g?.name || "").toLowerCase()
+    )
+  );
+  if (wanted.length > 0 && !wanted.some((name) => mine.has(name))) {
     return false;
   }
-  const mine = new Set(
-    (currentUser.groups || []).map((g) => String(g?.name || "").toLowerCase())
-  );
-  return wanted.some((name) => mine.has(name));
+  return !hidden.some((name) => mine.has(name));
 }
 
 // The one visibility question, asked once. Every render surface calls
@@ -445,10 +458,11 @@ function projectGroup(parent, currentUser, surface) {
         subsection: null,
         projected_from: section,
         projected_gates: {
-          parent: { show_when: null, visible_groups: null },
+          parent: { show_when: null, visible_groups: null, hidden_groups: null },
           child: {
             show_when: parent.show_when || null,
             visible_groups: parent.visible_groups || null,
+            hidden_groups: parent.hidden_groups || null,
           },
         },
       },
@@ -488,14 +502,21 @@ function projectGroup(parent, currentUser, surface) {
       // downstream re-evaluation can only ever be redundant, never wider.
       show_when: stricterShowWhen(parent.show_when, child.show_when),
       visible_groups: child.visible_groups || parent.visible_groups || null,
+      // Exclusions only ever narrow, so the parent's and the child's are
+      // both kept.
+      hidden_groups:
+        [child.hidden_groups, parent.hidden_groups].filter(Boolean).join("|") ||
+        null,
       projected_gates: {
         parent: {
           show_when: parent.show_when || null,
           visible_groups: parent.visible_groups || null,
+          hidden_groups: parent.hidden_groups || null,
         },
         child: {
           show_when: child.show_when || null,
           visible_groups: child.visible_groups || null,
+          hidden_groups: child.hidden_groups || null,
         },
       },
     }));

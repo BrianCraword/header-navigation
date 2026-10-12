@@ -78,6 +78,8 @@ je_nav_destinations:
           - staff
       visible_groups:
         type: string
+      hidden_groups:
+        type: string
       surface:
         type: enum
         default: both
@@ -150,6 +152,8 @@ je_nav_destinations:
                 - members
                 - staff
             visible_groups:
+              type: string
+            hidden_groups:
               type: string
             surface:
               type: enum

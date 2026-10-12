@@ -33,6 +33,9 @@ en:
             visible_groups:
               label: "Visible to groups"
               description: "Narrow this row to members of specific groups. Pipe-separated group NAMES, e.g. mm_participants|mm_onboarding. Blank = no group restriction. Composes with 'Visible to' — both must pass. Staff do NOT bypass this, so funnel stages stay inspectable."
+            hidden_groups:
+              label: "Hidden from groups"
+              description: "Hide this row from members of any of these groups. Pipe-separated group NAMES, e.g. mm_onboarding|mm_participants. Blank = no exclusion. Checked after 'Visible to groups'. Staff do NOT bypass this."
             surface:
               label: "Surface"
               description: "Where this row renders. both (default) · desktop (strip only) · mobile (bottom bar and sheets only). This is how the two surfaces are configured differently without keeping two lists in sync."
@@ -87,6 +90,9 @@ en:
                   visible_groups:
                     label: "Visible to groups"
                     description: "Pipe-separated group NAMES. Blank = no group restriction."
+                  hidden_groups:
+                    label: "Hidden from groups"
+                    description: "Pipe-separated group NAMES to hide this row from. Blank = no exclusion."
                   surface:
                     label: "Surface"
                     description: "both · desktop · mobile."

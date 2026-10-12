@@ -31,7 +31,9 @@ Everything is the `je_nav_destinations` objects setting. Each row:
 | `color` | Icon tint when not active (any CSS color) |
 | `badge` | Optional accent chip — `NEW`, `LIVE` |
 | `show_when` | `all` · `members` (logged-in) · `staff` |
-| `children` | Dropdown rows: `label`, `href`, `icon`, `subtext`, `badge`, `show_when`, `section` |
+| `visible_groups` | Pipe-separated group names; the row shows only to members of one of them |
+| `hidden_groups` | Pipe-separated group names; the row is hidden from members of any of them (5.2.0) |
+| `children` | Dropdown rows: `label`, `href`, `icon`, `subtext`, `badge`, `show_when`, `visible_groups`, `hidden_groups`, `section` |
 
 **Mega menu:** give children a `section` label and the dropdown renders
 one titled column per section. No sections → classic single column.
@@ -84,6 +86,8 @@ Tests: `node --test test/*.cjs` (surface gates and translation keys).
 shows both shapes.)
 
 ## Version notes
+
+**5.2.0** — `hidden_groups` on rows and children: hide a row from members of the listed groups. Built for funnel entry rows ("Start your Journey" steps aside once a member is in `mm_*`). Staff do not bypass it. Additive; existing rows render unchanged. Test: `test/hidden-groups.test.cjs`.
 
 **2.0.0** — mega-menu sections, per-item/child `show_when` visibility,
 badge chips, optional anonymous strip (`je_nav_show_anon`), neutral

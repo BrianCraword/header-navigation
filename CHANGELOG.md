@@ -1,6 +1,22 @@
 # Header Mega Nav — Changelog
 
 ---
+[5.2.0] - 2026-10-11
+
+- **New: `hidden_groups`** on destinations and children. It hides a row from
+  members of any listed group, using the same pipe-separated names as
+  `visible_groups`. It is checked after `visible_groups`, staff do not bypass
+  it, and a logged-out visitor is never hidden by it.
+- **Why:** on the live Matchmaking menu, an `mm_onboarding` member saw both
+  "Start your Journey" (every trust level) and "Continue your Journey"
+  (`mm_onboarding`), two rows to `/matchmaking`. To fix it, set "Start your
+  Journey" → Hidden from groups =
+  `mm_onboarding|mm_interviewing|mm_participants|pending_verification`.
+- The Explore projection carries the parent's and the child's exclusions.
+- Additive. A row without the field renders exactly as before.
+  Test: `test/hidden-groups.test.cjs`. Two of its cases fail on 5.1.3.
+
+---
 [5.1.3] - 2026-10-11
 
 - **Fixed: the focused bar shows all four controls, in order.** The
