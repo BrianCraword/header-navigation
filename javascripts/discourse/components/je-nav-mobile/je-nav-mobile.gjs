@@ -1,3 +1,4 @@
+import { getOwner } from "@ember/owner";
 import Component from "@glimmer/component";
 import { tracked } from "@glimmer/tracking";
 import { action } from "@ember/object";
@@ -87,7 +88,7 @@ destinations = settings.je_nav_destinations || [];
   avatarTab = settings.je_nav_mobile_avatar_tab;
   centerEmphasis = settings.je_nav_mobile_center_emphasis;
   identityLinks = settings.je_nav_identity_links || [];
-  identityPrimaryLabel =
+  configuredIdentityPrimaryLabel =
     settings.je_nav_identity_primary_label || "Update your profile";
   identityPrimaryHref =
     settings.je_nav_identity_primary_href || "/matchmaking";
@@ -387,8 +388,15 @@ _lastY = 0;
     return resolveHref("/my/preferences/account", this.currentUser);
   }
 
+  get datingNextStep() { return getOwner(this).lookup("service:vc-dating-next-step"); }
+  get datingPrimary() {
+    return this.identityPrimaryHref?.replace(/\/$/, "") === "/matchmaking";
+  }
+  get identityPrimaryLabel() {
+    return this.datingPrimary ? this.datingNextStep?.peripheral.label || "Open dating" : this.configuredIdentityPrimaryLabel;
+  }
   get identityPrimaryResolved() {
-    return resolveHref(this.identityPrimaryHref, this.currentUser);
+    return this.datingPrimary ? (this.datingNextStep ? this.datingNextStep.peripheral.action_url : "/matchmaking") : resolveHref(this.identityPrimaryHref, this.currentUser);
   }
 
   get identityRows() {
@@ -703,6 +711,7 @@ _lastY = 0;
   }
 
   openIdentity() {
+    if (this.datingPrimary) { this.datingNextStep?.refresh(); }
     this.sheetKey = null;
     this.identityOpen = true;
     this.barHidden = false;
@@ -775,6 +784,7 @@ _lastY = 0;
 
   @action
   identityRowTap(href, event) {
+    if (!href) { event?.preventDefault(); return; }
     event?.preventDefault();
     this._closeIdentity();
     DiscourseURL.routeTo(href);

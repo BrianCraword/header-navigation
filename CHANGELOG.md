@@ -1,5 +1,9 @@
 # Header Mega Nav — Changelog
 
+## 5.3.0 — 2026-10-15
+
+When the configured You primary destination is `/matchmaking`, its label and destination use the optional Matchmaking 0.21.0 next-step service. Opening You refreshes that state. Holds have no navigation target; absent service uses a neutral Open dating entry. Other configured destinations, visibility rules and 5.2.0 hidden_groups behavior are unchanged.
+
 ---
 [5.2.0] - 2026-10-11
 

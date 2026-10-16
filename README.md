@@ -1,5 +1,11 @@
 # Header Mega Nav
 
+## 5.3.0 — Shared You dating action
+
+When the configured You primary destination is `/matchmaking`, its label and destination use the optional Matchmaking 0.21.0 next-step service. Opening You refreshes that state. Holds have no navigation target; absent service uses a neutral Open dating entry. Other configured destinations, visibility rules and 5.2.0 hidden_groups behavior are unchanged.
+
+Validation and rollout: see `docs/T1-NEXT-STEP.md`.
+
 A per-site, admin-managed primary navigation strip for Discourse.
 One repo serves any number of sites: **the entire menu lives in theme
 settings**, edited at
