@@ -179,7 +179,7 @@ _desktopModeFrame = null;
   // Stable order-aware sort: items with an `order` number sort ascending;
   // items without keep their list position, after ordered ones on ties.
   get focusActive() {
-    return !!this.focusCompanionEnabled && this.focusRoute;
+    return !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
   }
 
   // The brand lockup owns the word "Home" and points at "/". In the
@@ -188,7 +188,7 @@ _desktopModeFrame = null;
   // there is never a second competing Home label. Everywhere else the
   // brand renders exactly as configured.
   get showBrandNow() {
-    return this.showBrand && !this.focusActive;
+    return this.showBrand && !settings.je_nav_unified_navigation_enabled && !this.focusActive;
   }
 
   // The focused projection, or the configured list. Both are the same
