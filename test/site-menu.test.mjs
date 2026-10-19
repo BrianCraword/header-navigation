@@ -1,0 +1,16 @@
+import {readFile} from "node:fs/promises";
+import assert from "node:assert/strict";
+import test from "node:test";
+const core=await readFile(new URL("../javascripts/discourse/lib/je-nav-core.js",import.meta.url),"utf8");
+const coreUrl="data:text/javascript;base64,"+Buffer.from(core).toString("base64");
+const text=(await readFile(new URL("../javascripts/discourse/lib/je-nav-menu-model.js",import.meta.url),"utf8")).replace('"./je-nav-core"',JSON.stringify(coreUrl));
+const {siteMenuRows}=await import("data:text/javascript;base64,"+Buffer.from(text).toString("base64"));
+const user={username_lower:"member",groups:[{name:"mm_onboarding"}]};
+const group={label:"Group",type:"dropdown",children:[{label:"Child",href:"/safe"}]};
+test("parent staff gate",()=>assert.deepEqual(siteMenuRows([{...group,show_when:"staff"}],user,"mobile"),[]));
+test("parent inclusion gate",()=>assert.deepEqual(siteMenuRows([{...group,visible_groups:"mm_participants"}],user,"mobile"),[]));
+test("parent exclusion gate",()=>assert.deepEqual(siteMenuRows([{...group,hidden_groups:"mm_onboarding"}],user,"mobile"),[]));
+test("child exclusion gate",()=>assert.deepEqual(siteMenuRows([{...group,children:[{href:"/private",hidden_groups:"mm_onboarding"}]}],user,"mobile"),[]));
+test("allowed child",()=>assert.equal(siteMenuRows([group],user,"mobile")[0].children[0].href,"/safe"));
+test("my alias",()=>assert.equal(siteMenuRows([{label:"Messages",href:"/my/messages"}],user,"mobile")[0].href,"/u/member/messages"));
+test("protocol relative rejected",()=>assert.deepEqual(siteMenuRows([{label:"Bad",href:"//evil.test"}],user,"mobile"),[]));
