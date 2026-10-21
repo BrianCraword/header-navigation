@@ -402,3 +402,9 @@ je_nav_focus_keep_explore_on_scroll:
   description: "On the focused Feed only, keep the mobile bar (and so Explore) in place while scrolling, overriding 'Hide bottom bar on scroll'. Community features stay one tap away however far a member reads. Everywhere else the hide-on-scroll setting is unchanged."
   type: bool
   default: true
+
+# The same configured navigation on Feed and ordinary browsing pages.
+je_nav_unified_navigation_enabled:
+  description: "Use the configured global menu on Feed as well as standard pages, overriding the focused Feed projection. Hide the redundant desktop Home brand link; the site logo remains Home. Existing destination order, mobile pins, permissions and composer suppression are preserved. Turn off to restore the previous layout. AI toolbar enablement is separate."
+  type: bool
+  default: false

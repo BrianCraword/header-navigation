@@ -108,7 +108,7 @@ destinations = settings.je_nav_destinations || [];
       // The tab lineup is about to change, so an open sheet belongs to a
       // tab that may no longer exist. Only when the companion is on: with
       // it off the lineup never changes, and 5.0.0 behaviour is kept.
-      if (this.focusCompanionEnabled) {
+      if (this.focusCompanionEnabled && !settings.je_nav_unified_navigation_enabled) {
         this._closeSheet();
         this.barHidden = false;
       }
@@ -198,7 +198,7 @@ _lastY = 0;
   }
 
   get focusActive() {
-    return !!this.focusCompanionEnabled && this.focusRoute;
+    return !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
   }
 
   // The focused projection, or the configured list. Identical shape, so
