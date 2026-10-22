@@ -594,6 +594,7 @@ _lastY = 0;
     // With hide-on-scroll off there is nothing to override and no
     // listener is needed: the bar already stays put.
     document.addEventListener("keydown", this.onKeydown);
+    document.addEventListener("fullscreenchange", this.onClassMutation);
 
     // Other surfaces (the vc-feed porch avatar) summon the identity
     // sheet through this event; preventDefault signals "claimed", so
@@ -647,6 +648,7 @@ _lastY = 0;
     }
     window.removeEventListener("scroll", this.onScroll);
     document.removeEventListener("keydown", this.onKeydown);
+    document.removeEventListener("fullscreenchange", this.onClassMutation);
     if (this.onExploreRequest) {
       document.removeEventListener(EXPLORE_OPEN_EVENT, this.onExploreRequest);
     }
@@ -667,7 +669,8 @@ _lastY = 0;
   }
 
   _suppressActive() {
-    const mandatory = this.sharedMode ? ["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page"] : [];
+    if (this.sharedMode && document.fullscreenElement) { return true; }
+    const mandatory = this.sharedMode ? ["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page", "modal-open", "has-full-page-chat", "chat-page", "fullscreen-composer"] : [];
     return [...mandatory, ...this.suppressClasses].some(
       (className) =>
         document.body.classList.contains(className) ||
@@ -684,6 +687,7 @@ _lastY = 0;
     const composing = ["composer-open", "has-ai-bot-docked-composer"].some(active);
     const aiLanding = this.currentURL.split(/[?#]/)[0] === DEFAULT_AI_WORKSPACE_HREF;
     const nativeOverlay = ["modal-open", "has-full-page-chat", "chat-page", "fullscreen-composer"].some(active) || !!document.fullscreenElement;
+    if (this.sharedMode && nativeOverlay) { this._closeSheet(); this._closeIdentity(); }
     const otherSuppression = this.suppressClasses.filter(name => !["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page"].includes(name)).some(active);
     this.topExplore = this.sharedMode && suppressed && (composing || aiLanding) && !nativeOverlay && !otherSuppression && this._visibleDestinations.some(d => d.shared_explore);
     document.body.classList.toggle("je-nav-mobile-on", !suppressed);
