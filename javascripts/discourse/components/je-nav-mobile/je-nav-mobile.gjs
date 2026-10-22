@@ -687,7 +687,7 @@ _lastY = 0;
     const composing = ["composer-open", "has-ai-bot-docked-composer"].some(active);
     const aiLanding = this.currentURL.split(/[?#]/)[0] === DEFAULT_AI_WORKSPACE_HREF;
     const nativeOverlay = ["modal-open", "has-full-page-chat", "chat-page", "fullscreen-composer"].some(active) || !!document.fullscreenElement;
-    if (this.sharedMode && nativeOverlay) { this._closeSheet(); this._closeIdentity(); }
+    if (this.sharedMode && nativeOverlay) { this._closeSheet(false); this._closeIdentity(false); }
     const otherSuppression = this.suppressClasses.filter(name => !["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page"].includes(name)).some(active);
     this.topExplore = this.sharedMode && suppressed && (composing || aiLanding) && !nativeOverlay && !otherSuppression && this._visibleDestinations.some(d => d.shared_explore);
     document.body.classList.toggle("je-nav-mobile-on", !suppressed);
@@ -737,10 +737,10 @@ _lastY = 0;
     requestAnimationFrame(() => document.querySelector(".je-mnav-sheet.is-open .je-mnav-sheet__close")?.focus());
   }
 
-  _closeSheet() {
+  _closeSheet(restoreFocus = true) {
     const wasOpen = this.sheetKey !== null;
     this.sheetKey = null;
-    if (wasOpen && this._invoker?.isConnected) { this._invoker.focus(); }
+    if (restoreFocus && wasOpen && this._invoker?.isConnected) { this._invoker.focus(); }
     if (!this.identityOpen) {
       document.body.classList.remove("je-nav-sheet-open");
     }
@@ -756,12 +756,12 @@ _lastY = 0;
     this._loadIdentityStats();
   }
 
-  _closeIdentity() {
+  _closeIdentity(restoreFocus = true) {
     if (!this.identityOpen) {
       return;
     }
     this.identityOpen = false;
-    if (this._identityInvoker?.isConnected) { this._identityInvoker.focus(); }
+    if (restoreFocus && this._identityInvoker?.isConnected) { this._identityInvoker.focus(); }
     if (this.sheetKey === null) {
       document.body.classList.remove("je-nav-sheet-open");
     }
