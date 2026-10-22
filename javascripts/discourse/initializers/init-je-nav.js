@@ -43,11 +43,13 @@ export default apiInitializer("1.8.0", (api) => {
     return;
   }
 
+  if (settings.je_nav_layout === "shared_explore") { document.body.classList.add("je-nav-shared"); }
+
   if (settings.je_nav_mode === "takeover") {
     document.body.classList.add("je-nav-takeover");
   }
 
-  [
+  if (settings.je_nav_layout !== "shared_explore") [
     ...suppressionClasses(settings.je_nav_suppress_core_desktop, "desktop"),
     ...suppressionClasses(settings.je_nav_suppress_core_mobile, "mobile"),
   ].forEach((className) => document.body.classList.add(className));

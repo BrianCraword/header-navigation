@@ -755,3 +755,50 @@ export function feedFocusRouteActive(doc) {
   }
   return FEED_FOCUS_CLASSES.every((name) => list.contains(name));
 }
+
+// Global presentation: filter BEFORE projecting. Unlike legacy focus mode,
+// no primary may widen a configured surface or parent/child gate.
+export function sharedProjection({ destinations = [], currentUser = null, surface = "desktop" } = {}) {
+  const visible = orderedItems(destinations).filter(d => rowVisible(d, currentUser, surface));
+  const base = focusedProjection({ destinations: visible, currentUser, surface,
+    labels: { home: "Feed", ai: surface === "mobile" ? "AI" : "AI Conversations" } });
+  const primary = base.primary.filter(d => d !== base.explore);
+  const feed = primary.find(d => urlMatches("/feed", d.href));
+  const messages = primary.find(d => urlMatches("/my/messages", d.href));
+  const ai = primary.find(d => d.href === DEFAULT_AI_WORKSPACE_HREF);
+  if (ai) { ai.shared_ai = true; ai.aria_label = "AI Conversations"; }
+  if (messages) { messages.shared_messages = true; }
+  const shortcuts = surface === "desktop" ? visible.filter(d =>
+    ["discussions", "word", "matchmaking"].includes(String(d.label).toLowerCase())
+  ).map(d => ({ ...d, shared_shortcut: true })) : [];
+  if (base.explore) {
+    // Matchmaking stays prominent without changing the journey's own gates.
+    base.explore.children = base.explore.children.map((d, i) => ({...d,
+      order: (/matchmaking/i.test(d.section || "") ? 0 : 10000) + i}));
+    base.explore.shared_explore = true;
+  }
+  return { ...base, primary: [feed, base.explore, ...shortcuts, ai, messages]
+    .filter(Boolean).map((d, i) => ({...d, order: i + 1, mobile_pinned: true, emphasis: false})) };
+}
+
+// Synchronous cancellable handoff lets the AI companion protect its draft.
+export function navigationAllowed(href) {
+  const draft = [...document.querySelectorAll("#ai-bot-conversations-input, .docked-composer textarea, .docked-composer [contenteditable='true']")]
+    .some(el => String(el.value ?? el.textContent ?? "").trim()) ||
+    document.querySelector(".docked-composer__upload, .docked-composer .upload-progress");
+  if (draft) {
+    window.alert("Your conversation has an unsent draft or upload. Send it or keep a copy before leaving.");
+    return false;
+  }
+  return document.dispatchEvent(new CustomEvent("je-nav:before-navigate", {
+    cancelable: true, detail: { href }
+  }));
+}
+
+export function sharedExploreSelected(primary, current, user, aiContext = false) {
+  if (aiContext) { return false; }
+  const matches = row => urlMatches(resolveDynamicHref(row, user), current);
+  const explore = primary.find(row => row.shared_explore);
+  return !!explore?.children.some(matches) && !primary.filter(row => !row.shared_explore)
+    .some(row => row.type === "dropdown" ? (row.children || []).filter(child => rowVisible(child, user, "desktop")).some(matches) : matches(row));
+}

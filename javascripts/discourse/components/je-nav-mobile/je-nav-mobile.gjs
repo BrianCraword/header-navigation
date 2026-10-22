@@ -18,6 +18,9 @@ import {
   EXPLORE_READY_CLASS,
   feedFocusRouteActive,
   focusedProjection,
+  sharedProjection,
+  sharedExploreSelected,
+  navigationAllowed,
   itemVisible,
   orderedItems,
   resolveBadge,
@@ -59,6 +62,7 @@ export default class JeNavMobile extends Component {
   @service currentUser;
   @service capabilities;
 
+  @tracked aiContext = document.body.classList.contains("vcai-navigation-ready");
   @tracked currentURL = this.router.currentURL || "/";
   @tracked barHidden = false;
   // null = closed · "__more__" = full overflow sheet · any other string =
@@ -71,6 +75,7 @@ export default class JeNavMobile extends Component {
   @tracked identityOpen = false;
   @tracked identityStats = null;
 
+  @tracked topExplore = false;
   @tracked focusRoute = feedFocusRouteActive();
 destinations = settings.je_nav_destinations || [];
   // v5.1.0 — the focused-Feed companion (see je-nav-core for the whole
@@ -81,8 +86,8 @@ destinations = settings.je_nav_destinations || [];
   focusHomeHref = settings.je_nav_focus_home_href || "/feed";
   focusKeepExplore = settings.je_nav_focus_keep_explore_on_scroll;
   
-  showLabels = settings.je_nav_mobile_show_labels;
-  hideOnScroll = settings.je_nav_mobile_hide_on_scroll;
+  showLabels = settings.je_nav_layout === "shared_explore" || settings.je_nav_mobile_show_labels;
+  hideOnScroll = settings.je_nav_layout !== "shared_explore" && settings.je_nav_mobile_hide_on_scroll;
   moreLabel = settings.je_nav_mobile_more_label || "More";
   moreIcon = settings.je_nav_mobile_more_icon || "ellipsis";
   avatarTab = settings.je_nav_mobile_avatar_tab;
@@ -100,6 +105,7 @@ destinations = settings.je_nav_destinations || [];
     .filter(Boolean);
 
   onClassMutation = () => {
+    this.aiContext = document.body.classList.contains("vcai-navigation-ready");
     // The Feed route adds vc-feed-active / vc-feed-focus in activate(),
     // which can land after routeDidChange, so the class is the signal.
     const active = feedFocusRouteActive();
@@ -147,6 +153,13 @@ onScroll = () => {
     });
   };
 onKeydown = (event) => {
+    if (event.key === "Tab" && this.overlayOpen) {
+      const panel = document.querySelector(this.identityOpen ? ".je-mnav-identity.is-open" : ".je-mnav-sheet.is-open");
+      const targets = [...(panel?.querySelectorAll("button, a[href], input, select, textarea, [tabindex='0']") || [])].filter(el => el.getClientRects().length);
+      const first = targets[0], last = targets[targets.length - 1];
+      if (first && event.shiftKey && (document.activeElement === first || !panel.contains(document.activeElement))) { event.preventDefault(); last.focus(); }
+      else if (first && !event.shiftKey && (document.activeElement === last || !panel.contains(document.activeElement))) { event.preventDefault(); first.focus(); }
+    }
     if (event.key === "Escape" && this.overlayOpen) {
       this._closeSheet();
       this._closeIdentity();
@@ -184,7 +197,7 @@ _lastY = 0;
         };
       });
     const resolvedHref = resolveDynamicHref(dest, this.currentUser);
-    const isActive = isDropdown
+    const isActive = dest.shared_explore ? sharedExploreSelected(this.barSource, current, this.currentUser, this.aiContext) : dest.shared_ai && this.aiContext ? true : dest.shared_messages && this.aiContext ? false : isDropdown
       ? children.some((c) => c.isActive)
       : urlMatches(resolvedHref, current);
     return {
@@ -197,14 +210,17 @@ _lastY = 0;
     };
   }
 
+  get sharedMode() { return settings.je_nav_layout === "shared_explore"; }
+
   get focusActive() {
-    return !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
+    return !this.sharedMode && !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
   }
 
   // The focused projection, or the configured list. Identical shape, so
   // the decoration, pinning, sheet and badge logic below are unchanged
   // and the two surfaces cannot drift apart.
   get barSource() {
+    if (this.sharedMode) { return sharedProjection({destinations: this.destinations, currentUser: this.currentUser, surface: "mobile"}).primary; }
     if (!this.focusActive) {
       return this.destinations;
     }
@@ -257,9 +273,9 @@ _lastY = 0;
   // member with no Explore at all.
   get _exploreOwned() {
     return (
-      this.focusActive &&
+      (this.sharedMode || this.focusActive) &&
       this.showBar &&
-      !this._suppressActive() &&
+      (!this._suppressActive() || this.topExplore) &&
       this._orderedTabs.some((tab) => tab.key === this._exploreKey)
     );
   }
@@ -286,6 +302,7 @@ _lastY = 0;
       kind: dest.isDropdown ? "dropdown" : "link",
       emphasis: dest.emphasis === true,
       label: dest.label,
+      ariaLabel: dest.aria_label || dest.label,
       icon: dest.icon,
       badge: dest.badge,
       resolvedHref: dest.resolvedHref,
@@ -314,7 +331,7 @@ _lastY = 0;
         iconStyle: null,
       });
     }
-    if (this.avatarTab && this.currentUser) {
+    if ((this.sharedMode || this.avatarTab) && this.currentUser) {
       tabs.push({
         key: "__me__",
         kind: "identity",
@@ -345,7 +362,7 @@ _lastY = 0;
   // "center" is only meaningful when one thing owns it.
   get tabs() {
     const tabs = this._orderedTabs;
-    if (!this.centerEmphasis || tabs.length < 3) {
+    if (this.sharedMode || !this.centerEmphasis || tabs.length < 3) {
       return tabs;
     }
     const index = tabs.findIndex((tab) => tab.emphasis === true);
@@ -490,6 +507,7 @@ _lastY = 0;
     const linkRow = (dest) => ({
       key: dest.label,
       label: dest.label,
+      ariaLabel: dest.aria_label || dest.label,
       icon: dest.icon,
       subtext: dest.subtext,
       badge: dest.badge,
@@ -649,7 +667,8 @@ _lastY = 0;
   }
 
   _suppressActive() {
-    return this.suppressClasses.some(
+    const mandatory = this.sharedMode ? ["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page"] : [];
+    return [...mandatory, ...this.suppressClasses].some(
       (className) =>
         document.body.classList.contains(className) ||
         document.documentElement.classList.contains(className)
@@ -661,6 +680,12 @@ _lastY = 0;
       return;
     }
     const suppressed = this._suppressActive();
+    const active = name => document.body.classList.contains(name) || document.documentElement.classList.contains(name);
+    const composing = ["composer-open", "has-ai-bot-docked-composer"].some(active);
+    const aiLanding = this.currentURL.split(/[?#]/)[0] === DEFAULT_AI_WORKSPACE_HREF;
+    const nativeOverlay = ["modal-open", "has-full-page-chat", "chat-page", "fullscreen-composer"].some(active) || !!document.fullscreenElement;
+    const otherSuppression = this.suppressClasses.filter(name => !["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page"].includes(name)).some(active);
+    this.topExplore = this.sharedMode && suppressed && (composing || aiLanding) && !nativeOverlay && !otherSuppression && this._visibleDestinations.some(d => d.shared_explore);
     document.body.classList.toggle("je-nav-mobile-on", !suppressed);
     document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
     // The Feed integration contract. toggle() with an explicit force does
@@ -697,20 +722,28 @@ _lastY = 0;
 
   
 
+  @action
+  openExplore() { this._openSheet(this._exploreKey); }
+
   _openSheet(key) {
+    this._invoker = document.activeElement;
     this.sheetKey = key;
     this.barHidden = false;
     document.body.classList.add("je-nav-sheet-open");
+    requestAnimationFrame(() => document.querySelector(".je-mnav-sheet.is-open .je-mnav-sheet__close")?.focus());
   }
 
   _closeSheet() {
+    const wasOpen = this.sheetKey !== null;
     this.sheetKey = null;
+    if (wasOpen && this._invoker?.isConnected) { this._invoker.focus(); }
     if (!this.identityOpen) {
       document.body.classList.remove("je-nav-sheet-open");
     }
   }
 
   openIdentity() {
+    this._identityInvoker = document.activeElement;
     if (this.datingPrimary) { this.datingNextStep?.refresh(); }
     this.sheetKey = null;
     this.identityOpen = true;
@@ -724,6 +757,7 @@ _lastY = 0;
       return;
     }
     this.identityOpen = false;
+    if (this._identityInvoker?.isConnected) { this._identityInvoker.focus(); }
     if (this.sheetKey === null) {
       document.body.classList.remove("je-nav-sheet-open");
     }
@@ -733,6 +767,7 @@ _lastY = 0;
 
   @action
   tabTap(tab, event) {
+    if (tab.kind === "link" && event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     event?.preventDefault();
     if (tab.kind === "identity") {
       if (this.identityOpen) {
@@ -744,6 +779,7 @@ _lastY = 0;
     }
     this._closeIdentity();
     if (tab.kind === "link") {
+      if (!navigationAllowed(tab.resolvedHref)) { return; }
       this._closeSheet();
       DiscourseURL.routeTo(tab.resolvedHref);
       return;
@@ -758,7 +794,9 @@ _lastY = 0;
 
   @action
   rowTap(row, event) {
+    if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     event?.preventDefault();
+    if (!navigationAllowed(row.resolvedHref)) { return; }
     this._closeSheet();
     DiscourseURL.routeTo(row.resolvedHref);
   }
@@ -784,10 +822,11 @@ _lastY = 0;
 
   @action
   identityRowTap(href, event) {
+    if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     if (!href) { event?.preventDefault(); return; }
     event?.preventDefault();
     this._closeIdentity();
-    DiscourseURL.routeTo(href);
+    if (navigationAllowed(href)) { DiscourseURL.routeTo(href); }
   }
 
   @action
@@ -804,10 +843,13 @@ _lastY = 0;
   <template>
     {{#if this.showBar}}
       <div
-        class="je-mnav-root"
+        class="je-mnav-root {{if this.sharedMode 'je-mnav-root--shared'}}"
         {{didInsert this.setup}}
         {{willDestroy this.teardown}}
       >
+        {{#if this.topExplore}}
+          <button type="button" class="je-mnav-top-explore" {{on "click" this.openExplore}}>{{icon "compass"}} Explore</button>
+        {{/if}}
         {{! Scrim — mounted always so open/close both transition }}
         <div
           class="je-mnav-scrim {{if this.overlayOpen 'is-open'}}"
@@ -1014,6 +1056,7 @@ _lastY = 0;
                   class="je-mnav__tab
                     {{if tab.isActive 'active'}}
                     {{if tab.emphasis 'is-emphasis'}}"
+                  aria-label={{tab.ariaLabel}}
                   aria-current={{if tab.isActive "page"}}
                   {{on "click" (fn this.tabTap tab)}}
                 >

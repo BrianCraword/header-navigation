@@ -467,3 +467,29 @@
 .je-nav--focus .je-nav__dropdown--mega {
   max-width: min(960px, calc(100vw - 2rem));
 }
+
+
+// 5.6: available strip width, including a visible Discourse sidebar.
+.je-nav--shared {
+  container-type: inline-size;
+  min-width: 0;
+  .je-nav__inner { box-sizing: border-box; width: 100%; min-width: 0; }
+  .je-nav__items { min-width: 0; flex-wrap: nowrap; }
+  .je-nav__item { min-height: 44px; }
+  .je-nav__dropdown { max-width: min(880px, 90vw); max-height: 65vh; overflow-y: auto; }
+  @container (max-width: 1080px) { .je-nav__shortcut { display: none; } }
+}
+
+.je-nav--shared {
+  .je-nav__group { position: static; }
+  .je-nav__dropdown { left: 0; right: 0; min-width: 0; width: auto; box-sizing: border-box; max-width: 100%; }
+  .je-nav__dropdown--mega { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); }
+  .je-nav__section { min-width: 0; }
+  .je-nav__panel-header { grid-column: 1 / -1; }
+  .je-nav__dropdown-subtext { font-size: 12px; }
+  .je-nav__section-title { white-space: normal; }
+  @container (max-width: 560px) {
+    .je-nav__item { padding-inline: 4px; gap: 4px; font-size: 12px; }
+    .je-nav__icon { display: none; }
+  }
+}

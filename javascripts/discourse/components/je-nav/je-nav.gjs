@@ -15,6 +15,9 @@ import {
   DEFAULT_AI_WORKSPACE_HREF,
   feedFocusRouteActive,
   focusedProjection,
+  sharedProjection,
+  sharedExploreSelected,
+  navigationAllowed,
   orderedItems,
   resolveBadge,
   resolveDynamicHref,
@@ -47,6 +50,7 @@ export default class JeNav extends Component {
   @service capabilities;
 
   @tracked openDropdown = null;
+  @tracked aiContext = document.body.classList.contains("vcai-navigation-ready");
   @tracked currentURL = this.router.currentURL || "/";
 
   // v4.1.1 — hover intent. Dropdowns open on mouseenter and close on
@@ -83,6 +87,7 @@ forumClasses = (settings.je_nav_forum_route_classes || "")
     .map((className) => className.trim())
     .filter(Boolean);
 onBodyClassChanged = () => {
+    this.aiContext = document.body.classList.contains("vcai-navigation-ready");
     const active = feedFocusRouteActive();
     if (this.focusRoute !== active) {
       this.focusRoute = active;
@@ -178,8 +183,10 @@ _desktopModeFrame = null;
   //
   // Stable order-aware sort: items with an `order` number sort ascending;
   // items without keep their list position, after ordered ones on ties.
+  get sharedMode() { return settings.je_nav_layout === "shared_explore"; }
+
   get focusActive() {
-    return !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
+    return !this.sharedMode && !settings.je_nav_unified_navigation_enabled && !!this.focusCompanionEnabled && this.focusRoute;
   }
 
   // The brand lockup owns the word "Home" and points at "/". In the
@@ -188,13 +195,14 @@ _desktopModeFrame = null;
   // there is never a second competing Home label. Everywhere else the
   // brand renders exactly as configured.
   get showBrandNow() {
-    return this.showBrand && !settings.je_nav_unified_navigation_enabled && !this.focusActive;
+    return !this.sharedMode && this.showBrand && !settings.je_nav_unified_navigation_enabled && !this.focusActive;
   }
 
   // The focused projection, or the configured list. Both are the same
   // shape, so ONE decoration path below serves both and the two surfaces
   // cannot drift.
   get stripSource() {
+    if (this.sharedMode) { return sharedProjection({destinations: this.destinations, currentUser: this.currentUser, surface: "desktop"}).primary; }
     if (!this.focusActive) {
       return this.destinations;
     }
@@ -253,7 +261,7 @@ _desktopModeFrame = null;
           sections.length > 1 || (sections.length === 1 && sections[0].hasTitle);
 
         const resolvedHref = resolveDynamicHref(dest, this.currentUser);
-        const isActive = isDropdown
+        const isActive = dest.shared_explore ? sharedExploreSelected(this.stripSource, current, this.currentUser, this.aiContext) : dest.shared_ai && this.aiContext ? true : dest.shared_messages && this.aiContext ? false : isDropdown
           ? children.some((c) => c.isActive)
           : urlMatches(resolvedHref, current);
         // Custom icon color applies only when NOT active — the active state's
@@ -281,6 +289,13 @@ _desktopModeFrame = null;
   @action
   trackRoute() {
     this._desktopMounted = true;
+    this.onExploreRequest = event => {
+      if (!this.sharedMode || !this.stripSource.some(d => d.shared_explore)) { return; }
+      event.preventDefault();
+      this.openDropdown = "Explore";
+      requestAnimationFrame(() => document.querySelector(".je-nav__dropdown a")?.focus());
+    };
+    document.addEventListener("je-nav:explore:open", this.onExploreRequest);
     this.currentURL = this.router.currentURL || "/";
     this.routeListener = () => {
       this.currentURL = this.router.currentURL || "/";
@@ -294,7 +309,7 @@ _desktopModeFrame = null;
     // notice the focused route. Observing the attribute is exact and
     // costs one listener. Only when the companion is on; with it off
     // nothing reads the focused route.
-    if (this.focusCompanionEnabled) {
+    if (this.focusCompanionEnabled || this.sharedMode) {
       this._focusObserver = new MutationObserver(this.onBodyClassChanged);
       this._focusObserver.observe(document.body, {
         attributes: true,
@@ -316,6 +331,7 @@ _desktopModeFrame = null;
 @action
   teardown() {
     this._desktopMounted = false;
+    document.removeEventListener("je-nav:explore:open", this.onExploreRequest);
     this._focusObserver?.disconnect();
     this._focusObserver = null;
     if (this._desktopModeFrame !== null) {
@@ -391,6 +407,7 @@ _isForumRoute() {
     }
     event?.preventDefault();
     event?.stopPropagation();
+    if (!navigationAllowed(href)) { return; }
     try {
       DiscourseURL.routeTo(href);
     } catch (e) {
@@ -501,7 +518,7 @@ _isForumRoute() {
   <template>
     {{#if this.showStrip}}
       <div
-        class="je-nav {{if this.focusActive 'je-nav--focus'}}"
+        class="je-nav {{if this.sharedMode 'je-nav--shared'}} {{if this.focusActive 'je-nav--focus'}}"
         {{didInsert this.trackRoute}}
         {{willDestroy this.teardown}}
       >
@@ -521,7 +538,7 @@ _isForumRoute() {
             {{#each this.decoratedDestinations key="label" as |dest|}}
               {{#if dest.isDropdown}}
                 <div
-                  class="je-nav__group {{if this.hoverEnabled 'is-hover'}}"
+                  class="je-nav__group {{if dest.shared_shortcut 'je-nav__shortcut'}} {{if this.hoverEnabled 'is-hover'}}"
                   {{on "mouseenter" (fn this.hoverOpen dest.label)}}
                   {{on "mouseleave" this.hoverClose}}
                   {{on "keydown" this.onGroupKeydown}}
