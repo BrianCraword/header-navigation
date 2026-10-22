@@ -9,6 +9,7 @@ export default apiInitializer((api) => {
     if (detail?.version !== 1 || !["mobile", "desktop"].includes(detail.surface)) { return; }
     const user = api.getCurrentUser();
     if (!user && !settings.je_nav_show_anon) { return; }
+    detail.sharedExplore = settings.je_nav_layout === "shared_explore" && (detail.surface === "desktop" || settings.je_nav_show_mobile);
     detail.rows = siteMenuRows(settings.je_nav_destinations || [], user, detail.surface);
   };
   document.addEventListener("je-nav:destinations:request", listener);

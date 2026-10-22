@@ -408,3 +408,12 @@ je_nav_unified_navigation_enabled:
   description: "Use the configured global menu on Feed as well as standard pages, overriding the focused Feed projection. Hide the redundant desktop Home brand link; the site logo remains Home. Existing destination order, mobile pins, permissions and composer suppression are preserved. Turn off to restore the previous layout. AI toolbar enablement is separate."
   type: bool
   default: false
+
+
+je_nav_layout:
+  type: enum
+  default: legacy
+  choices:
+    - legacy
+    - shared_explore
+  description: "Navigation layout. Shared Explore uses the same directory across Feed, Discourse and AI. Preserves saved destinations. Focus companion and unified navigation switches apply only to legacy. Preview before activating."

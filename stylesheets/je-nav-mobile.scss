@@ -771,3 +771,20 @@ body.je-nav-sheet-open {
     white-space: normal;
   }
 }
+
+
+.je-mnav-top-explore { min-height: 44px; margin: 4px 0; }
+.je-mnav-root--shared .je-mnav__tab { min-height: 44px; }
+// Composer suppression removes the bottom tabs and their padding, not the
+// explicitly opened Explore sheet. The existing root owns exactly one sheet.
+body.je-nav-mobile-suppressed .je-mnav-root--shared {
+  .je-mnav-sheet.is-open, .je-mnav-scrim.is-open { display: block; }
+}
+
+.je-mnav-root--shared:has(.je-mnav-top-explore) {
+  position: sticky;
+  top: var(--header-offset, 53px);
+  z-index: 1220;
+}
+
+body.vcai-navigation-ready .je-mnav-top-explore { display: none; }
