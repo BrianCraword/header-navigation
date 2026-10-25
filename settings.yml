@@ -417,3 +417,9 @@ je_nav_layout:
     - legacy
     - shared_explore
   description: "Navigation layout. Shared Explore uses the same directory across Feed, Discourse and AI. Preserves saved destinations. Focus companion and unified navigation switches apply only to legacy. Preview before activating."
+
+# Presentation only. Disable to restore exactly the configured identity grid.
+je_nav_identity_clarity_enabled:
+  type: bool
+  default: true
+  description: "Clarify standard My Profile and Badges labels in You and append missing Activity, Drafts and My badges links. Stored links, custom labels, ordering and visibility are preserved. Disable to restore the original configured grid."

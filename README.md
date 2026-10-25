@@ -1,3 +1,9 @@
+## 5.6.1 — Navigation clarity
+
+Validation and rollout: [clarity notes](docs/CLARITY-5.6.1.md).
+
+Clarifies standard You labels and appends missing Activity, Drafts and My badges without rewriting saved links. Custom labels, destinations and visibility remain intact. Disable je_nav_identity_clarity_enabled to restore the original grid.
+
 # Header Mega Nav
 
 ## 5.3.0 — Shared You dating action

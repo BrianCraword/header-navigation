@@ -31,6 +31,7 @@ import {
   urlMatches,
 } from "../../lib/je-nav-core";
 import { i18n } from "discourse-i18n";
+import { identityClarityRows } from "../../lib/je-nav-identity-clarity";
 
 // ── Mobile Bottom Nav (v3) ───────────────────────────────────────────────
 //
@@ -417,10 +418,18 @@ _lastY = 0;
   }
 
   get identityRows() {
-    return orderedItems(this.identityLinks)
+    const ordered = orderedItems(this.identityLinks);
+    const labels = Object.fromEntries(
+      ["community_profile", "badge_catalog", "activity", "drafts", "my_badges"].map(
+        key => [key, i18n(themePrefix(`je_nav.identity.${key}`))]
+      )
+    );
+    const rows = settings.je_nav_identity_clarity_enabled
+      ? identityClarityRows(ordered, this.currentUser, labels, window.location.origin) : ordered;
+    return rows
       .filter((link) => itemVisible(link, this.currentUser))
-      .map((link) => ({
-        key: link.label,
+      .map((link, index) => ({
+        key: `${index}:${link.href}`,
         label: link.label,
         icon: link.icon || "angle-right",
         resolvedHref: resolveHref(link.href, this.currentUser),

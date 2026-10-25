@@ -148,6 +148,12 @@ en:
       je_nav_focus_home_href: "Path the focused Home control opens. Defaults to the Feed; the brand link stays available in Explore as Community home."
       je_nav_focus_keep_explore_on_scroll: "On the focused Feed only, keep the bottom bar in place while scrolling so Explore stays reachable. Other routes keep the hide-on-scroll setting."
   je_nav:
+    identity:
+      community_profile: "Community profile"
+      badge_catalog: "Badge catalog"
+      activity: "Activity"
+      drafts: "Drafts"
+      my_badges: "My badges"
     focus:
       home: "Home"
       explore: "Explore"

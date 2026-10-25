@@ -1,3 +1,7 @@
+## 5.6.1 — Navigation clarity
+
+Clarifies standard You labels and appends missing Activity, Drafts and My badges without rewriting saved links. Custom labels, destinations and visibility remain intact. Disable je_nav_identity_clarity_enabled to restore the original grid.
+
 # Header Mega Nav — Changelog
 
 ## 5.3.0 — 2026-10-15
