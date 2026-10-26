@@ -190,3 +190,9 @@ Word raised to the center of the bar.
 ---
 [3.0.1] - (prior) Bottom tab bar + overflow sheet; shared je-nav-core.js
 drives desktop + mobile from one schema.
+
+## 5.7.0 — shared mobile AI navigation (2026-10-25)
+
+Paired Header Navigation 5.7 / AI Conversations Next 1.5 supports stable five-tab navigation on admitted mobile AI pages and a compact labeled toolbar. Opt in with `je_nav_ai_bottom_navigation_enabled` in shared_explore layout; default off pending physical-phone keyboard acceptance. Header measures the bar including safe area; AI offsets its native composer without changing native keyboard positioning. Missing or disabled integration retains the prior toolbar and suppression. Desktop, native menus, redirects, permissions and draft guards remain unchanged. No production deployment.
+
+Also fits all five shared tabs at 320px, gives History/Memories priority over the bar, and focuses Close when You opens. See AI-BOTTOM-NAV.md for the candidate evidence and remaining device checks.

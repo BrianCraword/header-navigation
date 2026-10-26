@@ -583,8 +583,15 @@ _lastY = 0;
   // ── Lifecycle ─────────────────────────────────────────────────────────
 
   @action
-  setup() {
+  setup(element) {
     this._mobileMounted = true;
+    this._barElement = element.querySelector(".je-mnav");
+    this._barObserver = new ResizeObserver(() => this._scheduleMobileMode());
+    if (this._barElement) { this._barObserver.observe(this._barElement); }
+    this._viewportChanged = () => this._scheduleMobileMode(true);
+    window.addEventListener("resize", this._viewportChanged);
+    window.visualViewport?.addEventListener("resize", this._viewportChanged);
+    window.visualViewport?.addEventListener("scroll", this._viewportChanged);
     this.routeListener = () => {
       this.currentURL = this.router.currentURL || "/";
       this._closeSheet();
@@ -650,6 +657,13 @@ _lastY = 0;
       clearTimeout(this._mobileModeTimer);
       this._mobileModeTimer = null;
     }
+    this._barObserver?.disconnect();
+    this._barElement = null;
+    window.removeEventListener("resize", this._viewportChanged);
+    window.visualViewport?.removeEventListener("resize", this._viewportChanged);
+    window.visualViewport?.removeEventListener("scroll", this._viewportChanged);
+    document.body.classList.remove("je-ai-bottom-navigation");
+    document.documentElement.style.removeProperty("--je-ai-bottom-inset");
     this._classObserver?.disconnect();
     this._classObserver = null;
     if (this.routeListener) {
@@ -677,10 +691,28 @@ _lastY = 0;
     document.body.classList.remove(EXPLORE_READY_CLASS);
   }
 
+  get aiBottomCoordinated() {
+    return settings.je_nav_ai_bottom_navigation_enabled === true &&
+      this.sharedMode && this._mobileMounted && this.showBar &&
+      window.matchMedia("(max-width: 639px)").matches &&
+      this._barElement?.isConnected && this._visibleDestinations.some(d => d.shared_explore) &&
+      document.body.classList.contains("vcai-navigation-ready") &&
+      document.body.classList.contains("vcai-mobile-nav-v1");
+  }
+
+  get aiKeyboardOpen() {
+    // Match the native docked composer's viewport threshold; never position it here.
+    const viewport = window.visualViewport;
+    return document.documentElement.classList.contains("keyboard-visible") ||
+      !!document.querySelector(".ai-bot-docked-composer.docked-composer--keyboard-open") ||
+      !!(viewport && viewport.scale === 1 && window.innerHeight - viewport.height > 100);
+  }
+
   _suppressActive() {
     if (this.sharedMode && document.fullscreenElement) { return true; }
     const mandatory = this.sharedMode ? ["composer-open", "has-ai-bot-docked-composer", "ai-bot-conversations-page", "modal-open", "has-full-page-chat", "chat-page", "fullscreen-composer"] : [];
-    return [...mandatory, ...this.suppressClasses].some(
+    if (this.aiBottomCoordinated && (this.aiKeyboardOpen || ["vcai-history--drawer-open", "vcai-memory--open"].some(name => document.body.classList.contains(name)))) { return true; }
+    return [...mandatory, ...this.suppressClasses].filter(name => !(this.aiBottomCoordinated && ["has-ai-bot-docked-composer", "ai-bot-conversations-page"].includes(name))).some(
       (className) =>
         document.body.classList.contains(className) ||
         document.documentElement.classList.contains(className)
@@ -691,6 +723,8 @@ _lastY = 0;
     if (!this._mobileMounted) {
       return;
     }
+    const coordinated = !!this.aiBottomCoordinated;
+    document.body.classList.toggle("je-ai-bottom-navigation", coordinated);
     const suppressed = this._suppressActive();
     const active = name => document.body.classList.contains(name) || document.documentElement.classList.contains(name);
     const composing = ["composer-open", "has-ai-bot-docked-composer"].some(active);
@@ -701,6 +735,13 @@ _lastY = 0;
     this.topExplore = this.sharedMode && suppressed && (composing || aiLanding) && !nativeOverlay && !otherSuppression && this._visibleDestinations.some(d => d.shared_explore);
     document.body.classList.toggle("je-nav-mobile-on", !suppressed);
     document.body.classList.toggle("je-nav-mobile-suppressed", suppressed);
+    // Measure after visibility is applied: the border box includes the safe area.
+    if (coordinated) {
+      const inset = suppressed ? 0 : Math.ceil(this._barElement.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--je-ai-bottom-inset", `${inset}px`);
+    } else {
+      document.documentElement.style.removeProperty("--je-ai-bottom-inset");
+    }
     // The Feed integration contract. toggle() with an explicit force does
     // not rewrite an unchanged attribute, so this cannot re-trigger the
     // class observer that called it.
@@ -763,6 +804,7 @@ _lastY = 0;
     this.barHidden = false;
     document.body.classList.add("je-nav-sheet-open");
     this._loadIdentityStats();
+    requestAnimationFrame(() => document.querySelector(".je-mnav-identity.is-open .je-mnav-sheet__close")?.focus());
   }
 
   _closeIdentity(restoreFocus = true) {

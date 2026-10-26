@@ -105,3 +105,9 @@ shows both shapes.)
 badge chips, optional anonymous strip (`je_nav_show_anon`), neutral
 shared-repo identity, this README. All schema changes additive; v1
 per-site values render unchanged.
+
+## 5.7.0 — shared mobile AI navigation (2026-10-25)
+
+Paired Header Navigation 5.7 / AI Conversations Next 1.5 supports stable five-tab navigation on admitted mobile AI pages and a compact labeled toolbar. Opt in with `je_nav_ai_bottom_navigation_enabled` in shared_explore layout; default off pending physical-phone keyboard acceptance. Header measures the bar including safe area; AI offsets its native composer without changing native keyboard positioning. Missing or disabled integration retains the prior toolbar and suppression. Desktop, native menus, redirects, permissions and draft guards remain unchanged. No production deployment.
+
+See [AI-BOTTOM-NAV.md](AI-BOTTOM-NAV.md) for verification, phone acceptance and rollback.

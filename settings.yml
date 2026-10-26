@@ -423,3 +423,9 @@ je_nav_identity_clarity_enabled:
   type: bool
   default: true
   description: "Clarify standard My Profile and Badges labels in You and append missing Activity, Drafts and My badges links. Stored links, custom labels, ordering and visibility are preserved. Disable to restore the original configured grid."
+
+# Opt in after testing the paired AI component on physical phones.
+je_nav_ai_bottom_navigation_enabled:
+  type: bool
+  default: false
+  description: "Show shared mobile navigation on compatible AI pages (AI Conversations Next 1.5+). Coordinates composer clearance. Requires shared_explore layout; disable to restore the previous AI navigation."
