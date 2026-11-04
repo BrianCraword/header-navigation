@@ -22,7 +22,7 @@ const TL = "trust_level_0|trust_level_1|trust_level_2|trust_level_3|trust_level_
 const start = { label: "Start your Journey", visible_groups: TL, hidden_groups: FUNNEL };
 const cont = { label: "Continue your Journey", visible_groups: "mm_onboarding" };
 
-const user = (...names) => ({ id: 7, groups: names.map((name) => ({ name })) });
+const user = (...names) => ({ id: 7, visibleGroups: names.map((name) => ({ name })) });
 
 test("a member not yet in the funnel sees Start, not Continue", async () => {
   const core = await load();
@@ -62,4 +62,13 @@ test("staff do not bypass hidden_groups", async () => {
   const core = await load();
   const staff = { ...user("mm_onboarding", "staff"), staff: true, admin: true };
   assert.equal(core.groupsAllow(start, staff), false);
+});
+
+
+test("modern visible groups preserve gates without reading deprecated getter", async () => {
+  const { groupsAllow } = await load();
+  const u = { visibleGroups: [{ name: "mm_onboarding" }],
+    get groups() { throw new Error("deprecated groups getter accessed"); } };
+  assert.equal(groupsAllow(cont, u), true);
+  assert.equal(groupsAllow({ hidden_groups: "mm_onboarding" }, u), false);
 });

@@ -161,7 +161,7 @@ export function groupsAllow(item, currentUser) {
     return true;
   }
   const mine = new Set(
-    (currentUser?.groups || []).map((g) =>
+    (currentUser?.visibleGroups || []).map((g) =>
       String(g?.name || "").toLowerCase()
     )
   );

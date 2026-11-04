@@ -16,7 +16,7 @@ const SOURCE = path.resolve(
 );
 const load = () => import(pathToFileURL(SOURCE).href);
 
-const member = { id: 7, username_lower: "member", groups: [] };
+const member = { id: 7, username_lower: "member", visibleGroups: [] };
 
 const destinations = (ai) => [
   { label: "Feed", type: "link", href: "/feed", surface: "both", mobile_pinned: true, order: 1 },

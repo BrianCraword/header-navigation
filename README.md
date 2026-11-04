@@ -1,3 +1,7 @@
+## 5.7.1 - Discourse compatibility
+
+Removes the deprecated user.groups read while preserving existing menu visibility. See [compatibility evidence](docs/COMPATIBILITY-5.7.1.md).
+
 ## 5.6.1 — Navigation clarity
 
 Validation and rollout: [clarity notes](docs/CLARITY-5.6.1.md).

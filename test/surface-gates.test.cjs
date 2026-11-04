@@ -27,7 +27,7 @@ const load = () => import(pathToFileURL(SOURCE).href);
 const member = (overrides = {}) => ({
   id: 7,
   username_lower: "member",
-  groups: [],
+  visibleGroups: [],
   ...overrides,
 });
 

@@ -3,7 +3,7 @@ const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
 const core = () => import(pathToFileURL(path.join(__dirname,'../javascripts/discourse/lib/je-nav-core.js')));
-const member = {id:7,username_lower:'member',groups:[{name:'mm_onboarding'}]};
+const member = {id:7,username_lower:'member',visibleGroups:[{name:'mm_onboarding'}]};
 const rows = [
  {label:'Feed',href:'/feed',surface:'both'},
  {label:'Discussions',type:'dropdown',children:[{label:'Latest',href:'/latest',subtext:'Recent discussions',icon:'comments',badge:'NEW',section:'Browse'}]},
@@ -52,7 +52,7 @@ test('desktop-only feed and AI never promoted to mobile',async()=>{
 });
 test('participant direct matches retain their own gate and staff remains separate',async()=>{
  const {sharedProjection}=await core();
- const user={...member,groups:[{name:'mm_participants'}]};
+ const user={...member,visibleGroups:[{name:'mm_participants'}]};
  const result=sharedProjection({destinations:rows,currentUser:user,surface:'mobile'});
  assert.ok(result.explore.children.some(r=>r.href==='/matchmaking/matches'));
  assert.equal(result.explore.children.some(r=>r.href==='/admin'),false);
