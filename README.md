@@ -1,3 +1,7 @@
+## 5.7.2 - Draft departure choices
+
+Adds Keep editing and Discard and leave for the AI start-page shared navigation. Update both AI and header components. See [validation and scope](docs/DRAFT-DEPARTURE-5.7.2.md).
+
 ## 5.7.1 - Discourse compatibility
 
 Removes the deprecated user.groups read while preserving existing menu visibility. See [compatibility evidence](docs/COMPATIBILITY-5.7.1.md).

@@ -391,7 +391,7 @@ _isForumRoute() {
   //     the DOM when the transition starts
   //   • if routeTo throws or refuses the href (external, unknown), fall
   //     back to a plain location change instead of a dead click
-  _go(href, event) {
+  async _go(href, event) {
     if (!href) {
       return;
     }
@@ -407,7 +407,7 @@ _isForumRoute() {
     }
     event?.preventDefault();
     event?.stopPropagation();
-    if (!navigationAllowed(href)) { return; }
+    if (!(await navigationAllowed(href))) { return; }
     try {
       DiscourseURL.routeTo(href);
     } catch (e) {

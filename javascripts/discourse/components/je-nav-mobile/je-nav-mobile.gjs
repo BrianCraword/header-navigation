@@ -821,7 +821,7 @@ _lastY = 0;
   // ── Actions ───────────────────────────────────────────────────────────
 
   @action
-  tabTap(tab, event) {
+  async tabTap(tab, event) {
     if (tab.kind === "link" && event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     event?.preventDefault();
     if (tab.kind === "identity") {
@@ -834,7 +834,7 @@ _lastY = 0;
     }
     this._closeIdentity();
     if (tab.kind === "link") {
-      if (!navigationAllowed(tab.resolvedHref)) { return; }
+      if (!(await navigationAllowed(tab.resolvedHref))) { return; }
       this._closeSheet();
       DiscourseURL.routeTo(tab.resolvedHref);
       return;
@@ -848,11 +848,11 @@ _lastY = 0;
   }
 
   @action
-  rowTap(row, event) {
+  async rowTap(row, event) {
     if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     event?.preventDefault();
-    if (!navigationAllowed(row.resolvedHref)) { return; }
     this._closeSheet();
+    if (!(await navigationAllowed(row.resolvedHref))) { return; }
     DiscourseURL.routeTo(row.resolvedHref);
   }
 
@@ -876,12 +876,12 @@ _lastY = 0;
   }
 
   @action
-  identityRowTap(href, event) {
+  async identityRowTap(href, event) {
     if (event && (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0)) { return; }
     if (!href) { event?.preventDefault(); return; }
     event?.preventDefault();
     this._closeIdentity();
-    if (navigationAllowed(href)) { DiscourseURL.routeTo(href); }
+    if (await navigationAllowed(href)) { DiscourseURL.routeTo(href); }
   }
 
   @action

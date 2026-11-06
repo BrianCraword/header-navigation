@@ -781,18 +781,27 @@ export function sharedProjection({ destinations = [], currentUser = null, surfac
     .filter(Boolean).map((d, i) => ({...d, order: i + 1, mobile_pinned: true, emphasis: false})) };
 }
 
-// Synchronous cancellable handoff lets the AI companion protect its draft.
-export function navigationAllowed(href) {
-  const draft = [...document.querySelectorAll("#ai-bot-conversations-input, .docked-composer textarea, .docked-composer [contenteditable='true']")]
-    .some(el => String(el.value ?? el.textContent ?? "").trim()) ||
-    document.querySelector(".docked-composer__upload, .docked-composer .upload-progress");
-  if (draft) {
-    window.alert("Your conversation has an unsent draft or upload. Send it or keep a copy before leaving.");
-    return false;
-  }
-  return document.dispatchEvent(new CustomEvent("je-nav:before-navigate", {
-    cancelable: true, detail: { href }
-  }));
+// Versioned async handoff. Older companions still veto synchronously.
+let navigationPending = false;
+export async function navigationAllowed(href) {
+  if (navigationPending) { return false; }
+  navigationPending = true;
+  try {
+    const detail = { href, version: 2, confirmation: null };
+    const allowed = document.dispatchEvent(new CustomEvent("je-nav:before-navigate", {
+      cancelable: true, detail
+    }));
+    if (detail.confirmation) { return (await detail.confirmation) === true; }
+    if (!allowed) { return false; }
+    const draft = [...document.querySelectorAll("#ai-bot-conversations-input, .docked-composer textarea, .docked-composer [contenteditable='true']")]
+      .some(el => String(el.value ?? el.textContent ?? "").trim()) ||
+      document.querySelector(".ai-bot-upload, .docked-composer__upload, .docked-composer .upload-progress");
+    if (draft) {
+      window.alert("Your conversation has an unsent draft or upload. Send it or keep a copy before leaving.");
+      return false;
+    }
+    return true;
+  } finally { navigationPending = false; }
 }
 
 export function sharedExploreSelected(primary, current, user, aiContext = false) {
