@@ -227,7 +227,7 @@ export function resolveDynamicHref(item, currentUser) {
 //
 // A grey label is furniture; a label carrying a number is a pull. Zero
 // renders nothing on purpose — an empty badge is worse than no badge.
-export function resolveBadge(item, currentUser) {
+export function resolveBadge(item, currentUser, site) {
   const source = item?.badge_source;
   if (!source || source === "static") {
     return item?.badge || null;
@@ -251,9 +251,19 @@ export function resolveBadge(item, currentUser) {
       }
       return item?.badge || null;
     case "messages_unread":
-      // Discourse's own number for the envelope badge. Named field, not
-      // a notification-type magic number, so it survives core changes.
-      count = currentUser?.new_personal_messages_notifications_count;
+      // Match the native Messages tab, not the header's new-message counter.
+      // Ember get() is required to track live notification updates.
+      if (!currentUser || site?.notification_types?.private_message == null) {
+        return item?.badge || null;
+      }
+      {
+        const type = site.notification_types.private_message;
+        const read = (key) => currentUser.get
+          ? currentUser.get(key)
+          : key.split(".").reduce((value, part) => value?.[part], currentUser);
+        count = read(`grouped_unread_notifications.${type}`) ||
+          read(`grouped_unread_high_priority_notifications.${type}`) || 0;
+      }
       break;
     case "notifications_unread":
       count = currentUser?.unread_high_priority_notifications;

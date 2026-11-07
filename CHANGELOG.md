@@ -1,3 +1,7 @@
+## 5.8.1 — Private-message unread badge
+
+Aligns configured Messages badges with the native unread private-message notification count, including live updates. Chat, other counters and configured visibility stay unchanged. See docs/MESSAGE-BADGE-5.8.1.md.
+
 ## 5.8.0 — You consolidation
 
 Grouped desktop/mobile You, native account controls, permission-aware invitations and draft counts. Preserves native notifications, Chat, desktop menus and configured destinations. See docs/YOU-5.8.0.md for evidence, rollback and acceptance limits.

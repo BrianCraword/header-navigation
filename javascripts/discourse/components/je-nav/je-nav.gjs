@@ -47,6 +47,7 @@ const SIDEBAR_PREF_KEY = "je_nav_sidebar_hidden";
 export default class JeNav extends Component {
   @service router;
   @service currentUser;
+  @service site;
   @service capabilities;
 
   @tracked openDropdown = null;
@@ -248,7 +249,7 @@ _desktopModeFrame = null;
             return {
               ...child,
               resolvedHref: href,
-              badge: resolveBadge(child, this.currentUser),
+              badge: resolveBadge(child, this.currentUser, this.site),
               isActive: urlMatches(href, current),
             };
           });
@@ -277,7 +278,7 @@ _desktopModeFrame = null;
           isMega,
           isActive,
           iconStyle,
-          badge: resolveBadge(dest, this.currentUser),
+          badge: resolveBadge(dest, this.currentUser, this.site),
           // A panel with a heading is a mega menu with something to say;
           // without one it stays the plain link list it has always been.
           hasPanelHeader: !!(dest.panel_title || dest.panel_subtext),

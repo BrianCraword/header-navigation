@@ -61,6 +61,7 @@ const SCROLL_DELTA_MIN = 6; // ignore jitter smaller than this
 export default class JeNavMobile extends Component {
   @service router;
   @service currentUser;
+  @service site;
   @service capabilities;
 
   @tracked aiContext = document.body.classList.contains("vcai-navigation-ready");
@@ -193,7 +194,7 @@ _lastY = 0;
         return {
           ...child,
           resolvedHref: href,
-          badge: resolveBadge(child, this.currentUser),
+          badge: resolveBadge(child, this.currentUser, this.site),
           isActive: urlMatches(href, current),
         };
       });
@@ -207,7 +208,7 @@ _lastY = 0;
       children,
       resolvedHref,
       isActive,
-      badge: resolveBadge(dest, this.currentUser),
+      badge: resolveBadge(dest, this.currentUser, this.site),
     };
   }
 
