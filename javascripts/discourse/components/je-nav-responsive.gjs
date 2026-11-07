@@ -1,4 +1,5 @@
 import Component from "@glimmer/component";
+import JeYouPanel from "./je-you-panel";
 import JeNav from "./je-nav/je-nav";
 import JeNavMobile from "./je-nav-mobile/je-nav-mobile";
 
@@ -8,6 +9,7 @@ import JeNavMobile from "./je-nav-mobile/je-nav-mobile";
 // when a resize crosses the 40rem breakpoint.
 export default class JeNavResponsive extends Component {
   <template>
+    <JeYouPanel />
     <JeNav />
     <JeNavMobile />
   </template>

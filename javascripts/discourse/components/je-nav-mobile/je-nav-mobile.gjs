@@ -86,7 +86,7 @@ destinations = settings.je_nav_destinations || [];
   focusAiHref = settings.je_nav_focus_ai_href || DEFAULT_AI_WORKSPACE_HREF;
   focusHomeHref = settings.je_nav_focus_home_href || "/feed";
   focusKeepExplore = settings.je_nav_focus_keep_explore_on_scroll;
-  
+
   showLabels = settings.je_nav_layout === "shared_explore" || settings.je_nav_mobile_show_labels;
   hideOnScroll = settings.je_nav_layout !== "shared_explore" && settings.je_nav_mobile_hide_on_scroll;
   moreLabel = settings.je_nav_mobile_more_label || "More";
@@ -616,6 +616,7 @@ _lastY = 0;
     // sheet through this event; preventDefault signals "claimed", so
     // the dispatcher knows not to fall back to a navigation.
     this.onIdentityRequest = (event) => {
+      if (settings.je_nav_you_enabled) { return; }
       event.preventDefault();
       this.openIdentity();
     };
@@ -770,11 +771,11 @@ _lastY = 0;
     }
   }
 
-  
 
-  
 
-  
+
+
+
 
   @action
   openExplore() { this._openSheet(this._exploreKey); }
@@ -797,6 +798,11 @@ _lastY = 0;
   }
 
   openIdentity() {
+    if (settings.je_nav_you_enabled) {
+      this._closeSheet(false);
+      const request = new CustomEvent("je-nav:identity:open", {cancelable: true});
+      if (!document.dispatchEvent(request)) { return; }
+    }
     this._identityInvoker = document.activeElement;
     if (this.datingPrimary) { this.datingNextStep?.refresh(); }
     this.sheetKey = null;

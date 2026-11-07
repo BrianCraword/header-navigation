@@ -104,27 +104,27 @@ onSidebarPrefChanged = () => {
   };
 _hoverTimer = null;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
 
-  
-  
-  
-  
 
-  
-  
-  
-  
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 _desktopModeFrame = null;
@@ -324,9 +324,9 @@ _desktopModeFrame = null;
     this._scheduleDesktopMode();
   }
 
-  
 
-  
+
+
 
 @action
   teardown() {
@@ -355,9 +355,9 @@ _desktopModeFrame = null;
     }
   }
 
-  
 
-  
+
+
 
 _isForumRoute() {
     const name = this.router.currentRouteName || "";
@@ -381,9 +381,9 @@ _isForumRoute() {
     document.body.classList.toggle("has-sidebar-page", !plaza);
   }
 
-  
 
-  
+
+
 
   // v4.1.2 — one navigation path for strip items and dropdown rows.
   //   • modifier / middle clicks are left to the browser (new tab works)
@@ -484,6 +484,17 @@ _isForumRoute() {
     DiscourseURL.routeTo("/");
   }
 
+  get showYou() { return settings.je_nav_you_enabled && this.currentUser; }
+  get youLabel() { return i18n(themePrefix("je_nav.you.title")); }
+  @action
+  async openYou() {
+    this.openDropdown = null;
+    const request = new CustomEvent("je-nav:identity:open", {cancelable: true});
+    if (document.dispatchEvent(request)) {
+      const href = `/u/${this.currentUser.username_lower}/summary`;
+      if (await navigationAllowed(href)) { DiscourseURL.routeTo(href); }
+    }
+  }
   @action
   goAccount(event) {
     event?.preventDefault();
@@ -645,7 +656,9 @@ _isForumRoute() {
             </button>
           {{/if}}
 
-          {{#if this.showAvatar}}
+          {{#if this.showYou}}
+            <button type="button" class="je-nav__you" aria-haspopup="dialog" {{on "click" this.openYou}}>{{icon "user"}} {{this.youLabel}}</button>
+          {{else if this.showAvatar}}
             {{#if this.currentUser}}
               <button
                 type="button"

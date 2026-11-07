@@ -429,3 +429,8 @@ je_nav_ai_bottom_navigation_enabled:
   type: bool
   default: false
   description: "Show shared mobile navigation on compatible AI pages (AI Conversations Next 1.5+). Coordinates composer clearance. Requires shared_explore layout; disable to restore the previous AI navigation."
+
+je_nav_you_enabled:
+  default: true
+  type: bool
+  description: 'Group personal links and reuse native account controls in You. Disable to restore the previous identity panel. Native menus stay available.'

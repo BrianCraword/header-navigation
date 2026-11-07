@@ -1,3 +1,7 @@
+## 5.8.0 — You consolidation (candidate)
+
+Grouped desktop/mobile You, native account controls, permission-aware invitations and draft counts. Preserves native notifications, Chat, desktop menus and configured destinations. See docs/YOU-5.8.0.md for evidence, rollback and pending acceptance.
+
 ## 5.6.1 — Navigation clarity
 
 Clarifies standard You labels and appends missing Activity, Drafts and My badges without rewriting saved links. Custom labels, destinations and visibility remain intact. Disable je_nav_identity_clarity_enabled to restore the original grid.

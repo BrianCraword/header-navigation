@@ -148,6 +148,20 @@ en:
       je_nav_focus_home_href: "Path the focused Home control opens. Defaults to the Feed; the brand link stays available in Explore as Community home."
       je_nav_focus_keep_explore_on_scroll: "On the focused Feed only, keep the bottom bar in place while scrolling so Explore stays reachable. Other routes keep the hide-on-scroll setting."
   je_nav:
+    you:
+      title: "You"
+      close: "Close You"
+      back: "Back to You"
+      account_controls: "Account controls"
+      activity: "Your activity"
+      profiles: "Your profiles"
+      account: "Account"
+      links: "Your links"
+      invitations: "Invitations"
+      private_messages: "Private messages"
+      change_photo: "Change photo"
+      open_dating: "Open dating"
+      finish_draft: "Finish or close your current draft before changing accounts or logging out."
     identity:
       community_profile: "Community profile"
       badge_catalog: "Badge catalog"
