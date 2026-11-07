@@ -1,6 +1,6 @@
-## 5.8.0 — You consolidation (candidate)
+## 5.8.0 — You consolidation
 
-Grouped desktop/mobile You, native account controls, permission-aware invitations and draft counts. Preserves native notifications, Chat, desktop menus and configured destinations. See docs/YOU-5.8.0.md for evidence, rollback and pending acceptance.
+Grouped desktop/mobile You, native account controls, permission-aware invitations and draft counts. Preserves native notifications, Chat, desktop menus and configured destinations. See docs/YOU-5.8.0.md for evidence, rollback and acceptance limits.
 
 ## 5.6.1 — Navigation clarity
 
