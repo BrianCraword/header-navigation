@@ -1,3 +1,7 @@
+## 5.9.0 — Native notification bell
+
+Displays a bell on the native notifications/account button when You is enabled. Preserves native unread badges, account controls, Chat and desktop navigation, with an avatar rollback switch. See docs/NOTIFICATION-BELL-5.9.0.md for acceptance and installation limits.
+
 ## 5.8.1 — Private-message unread badge
 
 Aligns configured Messages badges with the native unread private-message notification count, including live updates. Chat, other counters and configured visibility stay unchanged. See docs/MESSAGE-BADGE-5.8.1.md.

@@ -434,3 +434,8 @@ je_nav_you_enabled:
   default: true
   type: bool
   description: 'Group personal links and reuse native account controls in You. Disable to restore the previous identity panel. Native menus stay available.'
+
+je_nav_notification_bell_enabled:
+  type: bool
+  default: true
+  description: Show a bell on the native notifications and account button when You is enabled. Native badges, menus and account fallback remain available. Disable to restore the avatar.

@@ -4,7 +4,7 @@
   "license_url": null,
   "about_url": null,
   "authors": null,
-  "theme_version": "5.8.1",
+  "theme_version": "5.9.0",
   "minimum_discourse_version": null,
   "maximum_discourse_version": null,
   "assets": {},
@@ -34,7 +34,7 @@
       "camera",
       "circle-info",
       "hands-praying",
-      "compass", "user-plus"
+      "compass", "user-plus", "bell"
     ]
   },
   "learn_more": "https://meta.discourse.org/t/beginners-guide-to-using-discourse-themes/91966"

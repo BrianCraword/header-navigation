@@ -1,0 +1,29 @@
+// Keep the native avatar if the connector or relational-selector support is absent.
+.je-notification-bell {
+  display: none;
+}
+
+@supports selector(:has(*)) {
+  #toggle-current-user:has(.je-notification-bell .d-icon-bell) {
+    min-width: 44px;
+    min-height: 44px;
+
+    > img.avatar {
+      display: none;
+    }
+
+    .je-notification-bell {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      color: var(--header_primary);
+
+      .d-icon {
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+}
